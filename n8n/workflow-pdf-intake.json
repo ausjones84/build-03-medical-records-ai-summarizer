@@ -1,0 +1,138 @@
+{
+  "name": "Build 03 — PDF Intake + NCA Extraction",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pdf-intake",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook — PDF Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "pdf-intake-trigger"
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $input.first().json.body || $input.first().json;\nconst fileUrl = body.file_url || body.fileUrl || body.upload_url;\nconst contactId = body.contact_id || body.contactId;\nconst caseName = body.case_name || body.caseName || 'Unknown Case';\nconst clientName = body.client_name || body.clientName || 'Unknown Client';\nif (!fileUrl) throw new Error('No file_url provided in webhook payload');\nreturn [{ json: { fileUrl, contactId, caseName, clientName, timestamp: new Date().toISOString() } }];"
+      },
+      "name": "Extract Upload Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.NCA_TOOLKIT_URL }}/api/v1/toolkit/pdf-to-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "file_url", "value": "={{ $json.fileUrl }}" },
+            { "name": "output_format", "value": "text" }
+          ]
+        },
+        "options": { "timeout": 120000 }
+      },
+      "name": "NCA Toolkit — PDF to Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const extractedText = $input.first().json.text || $input.first().json.content || '';\nconst MAX_CHARS = 80000;\nconst chunks = [];\nfor (let i = 0; i < extractedText.length; i += MAX_CHARS) {\n  chunks.push(extractedText.slice(i, i + MAX_CHARS));\n}\nconst prevData = $node['Extract Upload Data'].json;\nreturn chunks.map((chunk, index) => ({\n  json: {\n    ...prevData,\n    chunkIndex: index,\n    totalChunks: chunks.length,\n    textChunk: chunk,\n    fullTextLength: extractedText.length\n  }\n}));"
+      },
+      "name": "Chunk Text for GPT-4o",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "={{ $env.OPENAI_MODEL || 'gpt-4o' }}" },
+            { "name": "temperature", "value": "0.2" },
+            { "name": "max_tokens", "value": "4096" },
+            {
+              "name": "messages",
+              "value": "=[{ \"role\": \"system\", \"content\": $env.SUMMARIZER_SYSTEM_PROMPT }, { \"role\": \"user\", \"content\": \"Case: \" + $json.caseName + \"\\nClient: \" + $json.clientName + \"\\n\\nMEDICAL RECORDS TEXT (chunk \" + ($json.chunkIndex + 1) + \" of \" + $json.totalChunks + \"):\\n\\n\" + $json.textChunk }]"
+            }
+          ]
+        },
+        "options": { "timeout": 180000 }
+      },
+      "name": "GPT-4o — Generate Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const summaries = $input.all().map(item => item.json.choices[0].message.content);\nconst combined = summaries.join('\\n\\n---\\n\\n');\nconst firstItem = $input.first().json;\nreturn [{ json: { summary: combined, contactId: firstItem.contactId, caseName: firstItem.caseName, clientName: firstItem.clientName, timestamp: firstItem.timestamp, wordCount: combined.split(' ').length } }];"
+      },
+      "name": "Combine Summary Chunks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GHL_API_KEY }}" },
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "body", "value": "=[MEDICAL RECORDS SUMMARY — {{ $json.timestamp }}]\nCase: {{ $json.caseName }}\nClient: {{ $json.clientName }}\n\n{{ $json.summary }}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "GHL — Log Summary to Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Summary generated and delivered', contactId: $json.contactId, caseName: $json.caseName, wordCount: $json.wordCount }) }}"
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — PDF Intake": { "main": [[{ "node": "Extract Upload Data", "type": "main", "index": 0 }]] },
+    "Extract Upload Data": { "main": [[{ "node": "NCA Toolkit — PDF to Text", "type": "main", "index": 0 }]] },
+    "NCA Toolkit — PDF to Text": { "main": [[{ "node": "Chunk Text for GPT-4o", "type": "main", "index": 0 }]] },
+    "Chunk Text for GPT-4o": { "main": [[{ "node": "GPT-4o — Generate Summary", "type": "main", "index": 0 }]] },
+    "GPT-4o — Generate Summary": { "main": [[{ "node": "Combine Summary Chunks", "type": "main", "index": 0 }]] },
+    "Combine Summary Chunks": { "main": [[{ "node": "GHL — Log Summary to Contact", "type": "main", "index": 0 }]] },
+    "GHL — Log Summary to Contact": { "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": ["build-03", "medical-records", "pdf", "nca-toolkit", "gpt-4o"]
+}
