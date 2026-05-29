@@ -44,7 +44,7 @@ footer{background:var(--navy);padding:20px 36px;text-align:center;color:rgba(255
 <body>
 
 <script>
-var CONFIG = {OPENAI_API_KEY:"",OPENAI_MODEL:"gpt-4o",FIRM_NAME:"Your Law Firm",MAX_FILE_MB:50};
+var CONFIG = {ANTHROPIC_API_KEY:"",ANTHROPIC_MODEL:"claude-sonnet-4-5",FIRM_NAME:"Your Law Firm",MAX_FILE_MB:50};
 </script>
 
 <header>
@@ -131,7 +131,7 @@ var CONFIG = {OPENAI_API_KEY:"",OPENAI_MODEL:"gpt-4o",FIRM_NAME:"Your Law Firm",
 <div class="pstep" id="ps-read"><div class="pico" id="pi-read">&#128194;</div><div><div class="plbl">Document Received</div><div class="pdet" id="pd-read">Reading file from your device</div></div></div>
 <div class="pstep" id="ps-extract"><div class="pico" id="pi-extract">&#128269;</div><div><div class="plbl">Text Extraction</div><div class="pdet" id="pd-extract">Extracting text from document</div></div></div>
 <div class="pstep" id="ps-prep"><div class="pico" id="pi-prep">&#9881;</div><div><div class="plbl">Preparing for AI</div><div class="pdet" id="pd-prep">Chunking and structuring content</div></div></div>
-<div class="pstep" id="ps-ai"><div class="pico" id="pi-ai">&#129504;</div><div><div class="plbl">AI Analysis (GPT-4o)</div><div class="pdet" id="pd-ai">Waiting to begin</div></div></div>
+<div class="pstep" id="ps-ai"><div class="pico" id="pi-ai">&#129504;</div><div><div class="plbl">AI Analysis (Claude)</div><div class="pdet" id="pd-ai">Waiting to begin</div></div></div>
 <div class="pstep" id="ps-fmt"><div class="pico" id="pi-fmt">&#128203;</div><div><div class="plbl">Structuring Output</div><div class="pdet" id="pd-fmt">Building legal summary</div></div></div>
 <div class="pstep" id="ps-done"><div class="pico" id="pi-done">&#9989;</div><div><div class="plbl">Summary Ready</div><div class="pdet" id="pd-done">Waiting...</div></div></div>
 </div>
@@ -221,7 +221,7 @@ async function startProcessing(){
     var ct=document.getElementById("claimType").value;
     var nt=document.getElementById("notes").value.trim();
     var summary;
-    if(CONFIG.OPENAI_API_KEY){summary=await callOpenAI(fn,ln,cn,ct,nt,chunks);}
+    if(CONFIG.ANTHROPIC_API_KEY){summary=await callClaude(fn,ln,cn,ct,nt,chunks);}
     else{await sleep(3500);summary=buildDemo(fn+" "+ln,cn,ct);}
     pStep("ai","done","AI analysis complete");
     pStep("fmt","active","Structuring output...");await sleep(500);pStep("fmt","done","Summary structured");
@@ -260,19 +260,19 @@ async function extractImage(file){
 <script>
 var SYS="You are a legal medical records analyst AI. Read extracted medical text and produce a structured legal summary for attorney review. Only report documented facts. Flag gaps.\n\nOUTPUT FORMAT:\n=== MEDICAL RECORDS SUMMARY ===\nCase: [name] | Generated: [date]\n\nPATIENT OVERVIEW\nName: [name] | DOB: [dob] | Incident Date: [date] | Claim Type: [type]\nPrimary Provider: [name + specialty]\n\nINJURY SUMMARY\n1. [Diagnosis] - [body part] - [SEVERE/MODERATE/mild] - [acute/chronic]\nPre-existing Conditions: [list or None]\n\nTREATMENT TIMELINE\n[YYYY-MM-DD]: [Provider] - [visit] - [findings]\n\nCAUSATION ANALYSIS\nCausal Link Strength: [Strong/Moderate/Weak/Insufficient]\nKey Findings: [list]\n\nDAMAGES ESTIMATE\nMedical Bills to Date: $[amount]\nFuture Medical Costs (estimated): $[range]\nLost Wages: [amount or Not documented]\nPermanent Impairment: [rating or Not yet determined]\nTotal Estimated Economic Damages: $[range]\n\nKEY SUPPORTING QUOTES\n1. [quote] - [Provider], [date]\n\nFLAGS AND GAPS\n- [HIGH/MEDIUM/LOW]: [description]\n\nRECOMMENDATIONS\n- [action]\n\n=== END SUMMARY ===";
 
-async function callOpenAI(fn,ln,cN,cT,nt,chunks){
-  var results=[];
-  for(var i=0;i<chunks.length;i++){
-    if(i>0){pStep("ai","active","Chunk "+(i+1)+" of "+chunks.length+"...");await sleep(200);}
-    var parts=["Case: "+cN,"Client: "+fn+" "+ln,"Claim Type: "+cT];
-    if(nt)parts.push("Context: "+nt);
-    parts.push(chunks.length>1?"DOCUMENT CHUNK "+(i+1)+" OF "+chunks.length+":":"MEDICAL RECORDS TEXT:");
-    parts.push("");parts.push(chunks[i]);
-    var r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+CONFIG.OPENAI_API_KEY},body:JSON.stringify({model:CONFIG.OPENAI_MODEL,temperature:0.2,max_tokens:4096,messages:[{role:"system",content:SYS},{role:"user",content:parts.join("\n")}]})});
-    if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error("OpenAI error: "+(e&&e.error?e.error.message:"HTTP "+r.status));}
-    var d=await r.json();results.push(d.choices[0].message.content);
-  }
-  return results.join("\n\n--- (continued) ---\n\n");
+async function callClaude(fn,ln,cN,cT,nt,chunks){
+var results=[];
+for(var i=0;i<chunks.length;i++){
+if(i>0){pStep("ai","active","Chunk "+(i+1)+" of "+chunks.length+"...");await sleep(200);}
+var parts=["Case: "+cN,"Client: "+fn+" "+ln,"Claim Type: "+cT];
+if(nt)parts.push("Context: "+nt);
+parts.push(chunks.length>1?"DOCUMENT CHUNK "+(i+1)+" OF "+chunks.length+":":"MEDICAL RECORDS TEXT:");
+parts.push("");parts.push(chunks[i]);
+var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":CONFIG.ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-client-side-api-key-access":"true"},body:JSON.stringify({model:CONFIG.ANTHROPIC_MODEL,max_tokens:4096,system:SYS,messages:[{role:"user",content:parts.join("\n")}]})})
+;if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error("Anthropic error: "+(e&&e.error?e.error.message:"HTTP "+r.status));}
+var d=await r.json();results.push(d.content[0].text);
+}
+return results.join("\n\n--- (continued) ---\n\n");
 }
 
 function buildDemo(client,cN,cT){
