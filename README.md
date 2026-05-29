@@ -1,4 +1,10 @@
+
 # Build #3: Medical Records AI Summarizer
+
+![Build Status](https://img.shields.io/badge/build-demo--ready-brightgreen)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Stack](https://img.shields.io/badge/stack-NCA%20Toolkit%20%2B%20GPT--4o%20%2B%20n8n-purple)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 **Stack:** NCA Toolkit + GPT-4o + n8n
 **Problem Solved:** Attorneys spend hours reading 200+ page medical records
@@ -14,15 +20,33 @@ This build deploys a fully automated medical records summarization pipeline. A c
 
 ---
 
+## Quick Start — Demo Guide
+
+> Recording a demo or testing the system? Start here.
+
+1. **Read the demo script** — See [docs/demo-script.md](docs/demo-script.md) for the full scene-by-scene recording guide
+2. **Use the sample output** — See [demo/sample-summary-output.md](demo/sample-summary-output.md) for a pre-generated summary if the live pipeline is unavailable
+3. **Test data** — Use synthetic (fake) patient data only — never real PHI during demos
+
+---
+
 ## Architecture
 
+```
 Client/Paralegal
-  -> Secure Upload Portal (GHL Form)
-  -> n8n Webhook Trigger
-  -> NCA Toolkit PDF Text Extraction
-  -> GPT-4o Structured Summary Generation
-  -> Structured Output: Injuries, Timeline, Causation, Damages
-  -> Attorney Dashboard (GHL Note + Email)
+     ↓
+Secure Upload Portal (GHL Form)
+     ↓
+n8n Webhook Trigger
+     ↓
+NCA Toolkit PDF Text Extraction
+     ↓
+GPT-4o Structured Summary Generation
+     ↓
+Structured Output: Injuries, Timeline, Causation, Damages
+     ↓
+Attorney Dashboard (GHL Note + Email + Task)
+```
 
 ---
 
@@ -35,43 +59,48 @@ Client/Paralegal
 | AI Summarization | OpenAI GPT-4o | Generates structured legal summary |
 | Intake Portal | GoHighLevel (GHL) | Secure file upload form for clients/paralegals |
 | Delivery | GHL + Email | Delivers summary to attorney dashboard |
+| Error Handling | n8n Error Workflow | Auto-retry (3x) + attorney alert on failure |
 
 ---
 
 ## File Structure
 
+```
 build-03-medical-records-ai-summarizer/
-  README.md
-  n8n/
-    workflow-pdf-intake.json          # Upload trigger + NCA extraction workflow
-    workflow-summary-delivery.json    # GPT-4o summary + attorney delivery
-  prompts/
-    system-prompt.md                  # GPT-4o system prompt for medical summarization
-    output-schema.md                  # Structured output format definition
-  ghl/
-    intake-form-setup.md              # GHL intake form configuration
-    dashboard-setup.md                # Attorney dashboard/delivery setup
-  docs/
-    setup-guide.md                    # Full setup walkthrough
-    pricing.md                        # Pricing and deliverables
-  .env.example
+├── README.md
+├── CHANGELOG.md               # Version history and enhancement notes
+├── .env.example
+├── n8n/
+│   ├── workflow-pdf-intake.json          # Upload trigger + NCA extraction + GPT-4o
+│   ├── workflow-summary-delivery.json    # Attorney email + GHL task + field updates
+│   └── workflow-error-handler.json       # Error retry (3x) + alert workflow
+├── prompts/
+│   ├── system-prompt.md       # GPT-4o system prompt for medical summarization
+│   └── output-schema.md       # Structured output format definition
+├── ghl/
+│   ├── intake-form-setup.md   # GHL intake form configuration
+│   └── dashboard-setup.md     # Attorney dashboard/delivery setup
+├── docs/
+│   ├── setup-guide.md         # Full setup walkthrough
+│   ├── demo-script.md         # Screen recording guide (Scenes 1-6)
+│   ├── hipaa-considerations.md # HIPAA compliance checklist and BAA guidance
+│   └── pricing.md             # Pricing and deliverables
+└── demo/
+    └── sample-summary-output.md # Pre-generated sample for Johnson v. Martinez
+```
 
 ---
 
 ## How It Works
 
 ### Step 1: PDF Upload
-Client or paralegal uploads the medical records PDF via GHL intake form.
-Form submits and triggers n8n webhook with file URL and case details.
+Client or paralegal uploads the medical records PDF via GHL intake form. Form submits and triggers n8n webhook with file URL and case details.
 
 ### Step 2: Text Extraction (NCA Toolkit)
-n8n sends the PDF to NCA Toolkit PDF-to-text endpoint.
-NCA Toolkit returns raw extracted text.
-n8n chunks the text if it exceeds GPT-4o token limits.
+n8n sends the PDF to NCA Toolkit PDF-to-text endpoint. NCA Toolkit returns raw extracted text. n8n chunks the text if it exceeds GPT-4o token limits.
 
 ### Step 3: GPT-4o Summarization
-n8n sends extracted text to GPT-4o with the legal system prompt.
-GPT-4o returns a structured summary with:
+n8n sends extracted text to GPT-4o with the legal system prompt. GPT-4o returns a structured summary with:
 - Patient and Case Overview
 - Injury Summary (diagnoses, severity, body parts)
 - Treatment Timeline (chronological visits, procedures, medications)
@@ -82,16 +111,20 @@ GPT-4o returns a structured summary with:
 ### Step 4: Delivery
 n8n formats the summary and delivers to attorney via:
 - GHL contact note (logged to the case contact)
-- Email to attorney with formatted summary
+- Email to attorney with formatted HTML summary
 - GHL task created for attorney review
 
-### Step 5: Case Logging
-GHL contact record updated with summary status and full text.
+### Step 5: Error Handling
+If any step fails, the error handler workflow:
+- Automatically retries up to 3 times (30-second wait between attempts)
+- Sends formatted error alert email to attorney after max retries
+- Logs error details to GHL contact notes
 
 ---
 
 ## Sample Output
 
+```
 === MEDICAL RECORDS SUMMARY ===
 Case: Johnson v. Martinez | Generated: 2026-04-28
 
@@ -114,9 +147,9 @@ TREATMENT TIMELINE
 2026-02-20: Surgical evaluation recommended
 
 CAUSATION ANALYSIS
-Strong causal link: MRI findings consistent with acute traumatic disc
-herniation. No pre-existing conditions documented. Treating physician
-states injuries "directly caused by the MVA of 11/04/2025."
+Strong causal link: MRI findings consistent with acute traumatic disc herniation.
+No pre-existing conditions documented.
+"injuries directly caused by the MVA of 11/04/2025." — Dr. Chen
 
 DAMAGES ESTIMATE
 Medical Bills to Date: $47,832
@@ -124,11 +157,15 @@ Projected Future Treatment: $85,000-$120,000
 Lost Wages: 6 weeks ($12,400 estimated)
 Total Estimated Damages: $145,232-$180,232
 === END SUMMARY ===
+```
+
+Full sample in [demo/sample-summary-output.md](demo/sample-summary-output.md)
 
 ---
 
 ## Environment Variables
 
+```env
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 OPENAI_MODEL=gpt-4o
 NCA_TOOLKIT_URL=https://your-nca-toolkit.com
@@ -137,6 +174,18 @@ GHL_API_KEY=your_ghl_api_key
 GHL_LOCATION_ID=your_location_id
 GHL_ATTORNEY_EMAIL=attorney@yourfirm.com
 N8N_PDF_INTAKE_WEBHOOK=https://your-n8n.com/webhook/pdf-intake
+```
+
+See [.env.example](.env.example) for the complete list.
+
+---
+
+## HIPAA Compliance
+
+This build processes Protected Health Information (PHI). Before deploying in production:
+- Review [docs/hipaa-considerations.md](docs/hipaa-considerations.md) for full compliance checklist
+- Obtain signed BAAs with OpenAI, n8n, NCA Toolkit, and GoHighLevel
+- Use synthetic data only during demos and testing
 
 ---
 
@@ -147,27 +196,27 @@ N8N_PDF_INTAKE_WEBHOOK=https://your-n8n.com/webhook/pdf-intake
 | Setup Fee | $2,000 (one-time) |
 | Monthly Retainer | $697/month |
 
-Setup includes NCA Toolkit integration, n8n workflow build, GPT-4o prompt
-engineering, GHL intake + delivery setup, 5 test records, and documentation.
-
-Monthly retainer includes quality monitoring, prompt refinements, and
-up to 2 hours/month of changes.
-
----
-
-## ROI
-
-Paralegal at $35/hr x 3 hrs/record = $105/record
-At 10 records/month = $1,050/month in labor
-This build automates it for $697/month — saving $353+/month with faster,
-more consistent output.
+See [docs/pricing.md](docs/pricing.md) for full ROI breakdown.
 
 ---
 
 ## Repos Referenced
 
-- no-code-architects-toolkit: PDF text extraction
-- n8n: Workflow automation
+| Repo | Purpose in This Build |
+|---|---|
+| [no-code-architects-toolkit](https://github.com/stephengpope/no-code-architects-toolkit) | PDF text extraction API |
+| [n8n](https://github.com/n8n-io/n8n) | Workflow automation |
+| [build-01-ai-voice-intake-agent](https://github.com/ausjones84/build-01-ai-voice-intake-agent) | Error handling + retry pattern |
+| [build-04-client-status-update-automation](https://github.com/ausjones84/build-04-client-status-update-automation) | GHL pipeline stage conventions |
+
+---
+
+## Related Builds
+
+- [Build #1: AI Voice Intake Agent](https://github.com/ausjones84/build-01-ai-voice-intake-agent) — 24/7 call answering + lead qualification
+- [Build #2: Missed Lead SMS Re-Engagement](https://github.com/ausjones84/build-02-missed-lead-sms-reengagement) — 60-second missed call follow-up
+- [Build #4: Client Status Update Automation](https://github.com/ausjones84/build-04-client-status-update-automation) — Automated case stage notifications
+- [Build #5: Review Generation Machine](https://github.com/ausjones84/build-05-review-generation-machine) — Post-settlement Google review automation
 
 ---
 
