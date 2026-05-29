@@ -317,16 +317,16 @@ function togglePanel(id){var b=document.getElementById(id),t=document.getElement
 function buildInjuryPanel(t){
   var s=sect(t,"INJURY SUMMARY","TREATMENT TIMELINE");
   var lines=s.split("\n").filter(function(l){return /^\d+\./.test(l.trim());});
-  if(!lines.length)return makePanel("Injuries","Injury Summary","","<pre style=\"white-space:pre-wrap;font-size:13px\">"+s+"</pre>",true);
+  if(!lines.length)return makePanel("&#129657;","Injury Summary","","<pre style=\"white-space:pre-wrap;font-size:13px\">"+s+"</pre>",true);
   var chips=lines.map(function(l){var tx=l.replace(/^\d+\.\s*/,"");var sv=/severe/i.test(tx)?"severe":/moderate/i.test(tx)?"moderate":"mild";return"<div class=\"ichip "+sv+"\">"+tx+"</div>";}).join("");
-  return makePanel("Injuries","Injury Summary","<span class=\"pill r\">"+lines.length+" diagnosed</span>","<div class=\"injury-chips\">"+chips+"</div>",true);
+  return makePanel("&#129657;","Injury Summary","<span class=\"pill r\">"+lines.length+" diagnosed</span>","<div class=\"injury-chips\">"+chips+"</div>",true);
 }
 
 function buildTimelinePanel(t){
   var lines=sect(t,"TREATMENT TIMELINE","CAUSATION ANALYSIS").split("\n").filter(function(l){return l.trim().length>5;});
-  if(!lines.length)return makePanel("Timeline","Treatment Timeline","","<em>No timeline data found.</em>",false);
+  if(!lines.length)return makePanel("&#128197;","Treatment Timeline","","<em>No timeline data found.</em>",false);
   var html=lines.map(function(l){var c=l.indexOf(":");if(c>0&&c<15)return"<div class=\"tl-item\"><div class=\"tl-date\">"+l.slice(0,c).trim()+"</div><div class=\"tl-event\">"+l.slice(c+1).trim()+"</div></div>";return"<div class=\"tl-item\"><div class=\"tl-event\">"+l.trim()+"</div></div>";}).join("");
-  return makePanel("Timeline","Treatment Timeline","<span class=\"pill b\">"+lines.length+" events</span>",html,false);
+  return makePanel("&#128197;","Treatment Timeline","<span class=\"pill b\">"+lines.length+" events</span>",html,false);
 }
 
 function buildCausationPanel(t){
@@ -334,38 +334,38 @@ function buildCausationPanel(t){
   var m=s.match(/Causal Link Strength:\s*(.+)/i);var str=m?m[1].trim():"";
   var cls=/strong/i.test(str)?"g":/moderate/i.test(str)?"a":"r";
   var badge=str?"<span class=\"pill "+cls+"\">"+str+"</span>":"";
-  return makePanel("Causation","Causation Analysis",badge,"<pre style=\"white-space:pre-wrap;font-size:13px;line-height:1.7\">"+s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</pre>",false);
+  return makePanel("&#9878;","Causation Analysis",badge,"<pre style=\"white-space:pre-wrap;font-size:13px;line-height:1.7\">"+s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</pre>",false);
 }
 
 function buildDamagesPanel(t){
   var lines=sect(t,"DAMAGES ESTIMATE","KEY SUPPORTING QUOTES").split("\n").filter(function(l){return l.indexOf(":")>=0;});
-  if(!lines.length)return makePanel("Damages","Damages Estimate","","<em>No damages data found.</em>",true);
+  if(!lines.length)return makePanel("&#128184;","Damages Estimate","","<em>No damages data found.</em>",true);
   var rows=lines.map(function(l){var i=l.indexOf(":");var tot=/total/i.test(l);return"<tr"+(tot?" class=\"total-row\"":" ")+">"+"<td>"+l.slice(0,i).trim()+"</td><td>"+l.slice(i+1).trim()+"</td></tr>";}).join("");
-  return makePanel("Damages","Damages Estimate","","<table class=\"dtable\">"+rows+"</table>",true);
+  return makePanel("&#128184;","Damages Estimate","","<table class=\"dtable\">"+rows+"</table>",true);
 }
 
 function buildQuotesPanel(t){
   var lines=sect(t,"KEY SUPPORTING QUOTES","FLAGS AND GAPS").split("\n").filter(function(l){return /^\d+\./.test(l.trim());});
-  if(!lines.length)return makePanel("Quotes","Key Supporting Quotes","","<em>No quotes found.</em>",false);
+  if(!lines.length)return makePanel("&#128172;","Key Supporting Quotes","","<em>No quotes found.</em>",false);
   var html=lines.map(function(l){return"<div class=\"quote-block\"><div class=\"quote-text\">"+l.replace(/^\d+\.\s*/,"").trim()+"</div></div>";}).join("");
-  return makePanel("Quotes","Key Supporting Quotes","",html,false);
+  return makePanel("&#128172;","Key Supporting Quotes","",html,false);
 }
 
 function buildFlagsPanel(t){
   var lines=sect(t,"FLAGS AND GAPS","RECOMMENDATIONS").split("\n").filter(function(l){return l.trim().charAt(0)==="-";});
-  if(!lines.length)return makePanel("Flags","Flags and Gaps","","<em>No flags found.</em>",true);
+  if(!lines.length)return makePanel("&#128680;","Flags and Gaps","","<em>No flags found.</em>",true);
   var html=lines.map(function(l){var sv=/HIGH/i.test(l)?"high":/MEDIUM/i.test(l)?"medium":"low";return"<div class=\"flag-item "+sv+"\"><div class=\"flag-txt\">"+l.replace(/^-\s*/,"").trim()+"</div></div>";}).join("");
-  return makePanel("Flags","Flags and Gaps","<span class=\"pill r\">"+lines.length+" flagged</span>",html,true);
+  return makePanel("&#128680;","Flags and Gaps","<span class=\"pill r\">"+lines.length+" flagged</span>",html,true);
 }
 
 function buildRecsPanel(t){
   var lines=sect(t,"RECOMMENDATIONS","=== END").split("\n").filter(function(l){return l.trim().charAt(0)==="-"||/^\d+\./.test(l.trim());});
-  if(!lines.length)return makePanel("Recs","Attorney Recommendations","","<em>No recommendations found.</em>",false);
+  if(!lines.length)return makePanel("&#128203;","Attorney Recommendations","","<em>No recommendations found.</em>",false);
   var html=lines.map(function(l){return"<div style=\"padding:9px 0;border-bottom:1px solid var(--g200);font-size:14px\">OK "+l.replace(/^[-\d.\s]+/,"").trim()+"</div>";}).join("");
-  return makePanel("Recs","Attorney Recommendations","",html,false);
+  return makePanel("&#128203;","Attorney Recommendations","",html,false);
 }
 
-function buildRawPanel(t){return makePanel("Raw","Full Raw Summary","","<div class=\"raw-text\">"+t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</div>",false);}
+function buildRawPanel(t){return makePanel("&#128196;","Full Raw Summary","","<div class=\"raw-text\">"+t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</div>",false);}
 
 function copySummary(){navigator.clipboard.writeText(summaryText).then(function(){alert("Copied!");}).catch(function(){var ta=document.createElement("textarea");ta.value=summaryText;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);alert("Copied!");});}
 function downloadSummary(){var n=document.getElementById("caseName").value.trim().replace(/[^a-z0-9]/gi,"-").toLowerCase();var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([summaryText],{type:"text/plain"}));a.download="medical-summary-"+n+"-"+Date.now()+".txt";a.click();}
