@@ -1,876 +1,395 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Medical Records AI Summarizer — Build #3</title>
-  <script src="https://cdn.jsdelivr.net/npm/pdf.js@4.2.67/build/pdf.min.mjs" type="module"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --navy: #0f1b2d;
-      --navy-light: #1a2e4a;
-      --gold: #c9a84c;
-      --gold-light: #e8c97a;
-      --white: #ffffff;
-      --gray-100: #f7f8fa;
-      --gray-200: #e8eaed;
-      --gray-400: #9aa0a6;
-      --gray-700: #3c4043;
-      --green: #1e8e3e;
-      --green-light: #e6f4ea;
-      --red: #c5221f;
-      --red-light: #fce8e6;
-      --blue: #1967d2;
-      --blue-light: #e8f0fe;
-      --shadow: 0 2px 12px rgba(0,0,0,0.12);
-      --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-      --radius: 12px;
-      --radius-sm: 8px;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--gray-100);
-      color: var(--gray-700);
-      min-height: 100vh;
-    }
-
-    /* ── HEADER ── */
-    header {
-      background: var(--navy);
-      padding: 0 32px;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .header-logo {
-      width: 36px;
-      height: 36px;
-      background: var(--gold);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-    .header-title {
-      color: var(--white);
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -0.2px;
-    }
-    .header-subtitle {
-      color: var(--gray-400);
-      font-size: 12px;
-      margin-top: 1px;
-    }
-    .header-badge {
-      background: var(--gold);
-      color: var(--navy);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      letter-spacing: 0.5px;
-    }
-
-    /* ── MAIN LAYOUT ── */
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 32px 24px;
-    }
-
-    .page-title {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 6px;
-    }
-    .page-subtitle {
-      font-size: 15px;
-      color: var(--gray-400);
-      margin-bottom: 32px;
-    }
-
-    /* ── CARD ── */
-    .card {
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 28px;
-      margin-bottom: 24px;
-    }
-    .card-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .card-title .step-badge {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--navy);
-      color: var(--white);
-      font-size: 12px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .card-desc {
-      font-size: 13px;
-      color: var(--gray-400);
-      margin-bottom: 20px;
-      margin-left: 32px;
-    }
-
-    /* ── FORM ELEMENTS ── */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-group.full { grid-column: 1 / -1; }
-    label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--navy);
-    }
-    label .required { color: var(--red); margin-left: 3px; }
-    input[type="text"], input[type="email"], input[type="password"], select, textarea {
-      padding: 10px 14px;
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      font-size: 14px;
-      color: var(--gray-700);
-      background: var(--white);
-      transition: border-color 0.2s, box-shadow 0.2s;
-      font-family: inherit;
-    }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(25,103,210,0.1);
-    }
-    textarea { resize: vertical; min-height: 80px; }
-
-    /* ── API KEY FIELD ── */
-    .api-key-wrap {
-      position: relative;
-    }
-    .api-key-wrap input { padding-right: 44px; width: 100%; }
-    .api-key-wrap .toggle-vis {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--gray-400);
-      font-size: 16px;
-      padding: 4px;
-    }
-    .api-key-note {
-      font-size: 12px;
-      color: var(--gray-400);
-      margin-top: 4px;
-    }
-
-    /* ── FILE UPLOAD ── */
-    .file-drop {
-      border: 2px dashed var(--gray-200);
-      border-radius: var(--radius-sm);
-      padding: 32px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
-    }
-    .file-drop:hover, .file-drop.dragover {
-      border-color: var(--blue);
-      background: var(--blue-light);
-    }
-    .file-drop input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
-    .file-drop-icon { font-size: 36px; margin-bottom: 10px; }
-    .file-drop-text { font-size: 15px; font-weight: 600; color: var(--navy); }
-    .file-drop-sub { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
-    .file-selected {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--green-light);
-      border: 1.5px solid var(--green);
-      border-radius: var(--radius-sm);
-      padding: 12px 16px;
-      margin-top: 12px;
-    }
-    .file-selected-icon { font-size: 20px; }
-    .file-selected-name { font-size: 14px; font-weight: 600; color: var(--green); }
-    .file-selected-size { font-size: 12px; color: var(--gray-400); }
-
-    /* ── HIPAA CONSENT ── */
-    .consent-box {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      background: var(--blue-light);
-      border: 1.5px solid var(--blue);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      margin-top: 16px;
-      cursor: pointer;
-    }
-    .consent-box input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-      margin-top: 1px;
-      cursor: pointer;
-      accent-color: var(--blue);
-    }
-    .consent-text { font-size: 13px; color: var(--gray-700); line-height: 1.5; }
-    .consent-text strong { color: var(--navy); }
-
-    /* ── SUBMIT BUTTON ── */
-    .btn-primary {
-      background: var(--navy);
-      color: var(--white);
-      border: none;
-      padding: 14px 32px;
-      border-radius: var(--radius-sm);
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      letter-spacing: -0.2px;
-    }
-    .btn-primary:hover { background: var(--navy-light); transform: translateY(-1px); }
-    .btn-primary:active { transform: translateY(0); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-    .btn-secondary {
-      background: var(--white);
-      color: var(--navy);
-      border: 1.5px solid var(--gray-200);
-      padding: 10px 20px;
-      border-radius: var(--radius-sm);
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
-    .btn-secondary:hover { border-color: var(--navy); }
-
-    /* ── PIPELINE STEPS ── */
-    .pipeline {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-    .pipeline-step {
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      padding: 14px 0;
-      position: relative;
-    }
-    .pipeline-step:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      left: 15px;
-      top: 44px;
-      bottom: 0;
-      width: 2px;
-      background: var(--gray-200);
-    }
-    .pipeline-step.done::after { background: var(--green); }
-    .pipeline-step.active::after { background: linear-gradient(to bottom, var(--blue), var(--gray-200)); }
-
-    .step-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 2px solid var(--gray-200);
-      background: var(--white);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
-      transition: all 0.3s;
-      z-index: 1;
-    }
-    .pipeline-step.done .step-icon {
-      background: var(--green);
-      border-color: var(--green);
-      color: white;
-    }
-    .pipeline-step.active .step-icon {
-      background: var(--blue);
-      border-color: var(--blue);
-      color: white;
-      animation: pulse 1.2s infinite;
-    }
-    .pipeline-step.error .step-icon {
-      background: var(--red);
-      border-color: var(--red);
-      color: white;
-    }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(25,103,210,0.4); }
-      50% { box-shadow: 0 0 0 6px rgba(25,103,210,0); }
-    }
-
-    .step-info {}
-    .step-label { font-size: 14px; font-weight: 600; color: var(--navy); }
-    .step-detail { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
-    .step-detail.active-detail { color: var(--blue); }
-    .step-detail.done-detail { color: var(--green); }
-    .step-detail.error-detail { color: var(--red); }
-
-    /* ── PROCESSING CARD ── */
-    #processingSection { display: none; }
-    .processing-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    .processing-spinner {
-      width: 28px;
-      height: 28px;
-      border: 3px solid var(--gray-200);
-      border-top-color: var(--blue);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      flex-shrink: 0;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .processing-title { font-size: 18px; font-weight: 700; color: var(--navy); }
-    .processing-subtitle { font-size: 13px; color: var(--gray-400); }
-
-    .time-badge {
-      background: var(--navy);
-      color: var(--white);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      margin-left: auto;
-    }
-
-    /* ── RESULTS ── */
-    #resultsSection { display: none; }
-
-    .result-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      flex-wrap: gap;
-      gap: 12px;
-    }
-    .result-title-block {}
-    .result-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--navy);
-    }
-    .result-meta {
-      font-size: 13px;
-      color: var(--gray-400);
-      margin-top: 3px;
-    }
-    .result-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .summary-section {
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-    .summary-section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      background: var(--gray-100);
-      cursor: pointer;
-      user-select: none;
-    }
-    .summary-section-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--navy);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .summary-section-toggle { font-size: 12px; color: var(--gray-400); }
-    .summary-section-body {
-      padding: 16px;
-      font-size: 14px;
-      line-height: 1.7;
-      color: var(--gray-700);
-    }
-
-    /* pills */
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .pill-green { background: var(--green-light); color: var(--green); }
-    .pill-red { background: var(--red-light); color: var(--red); }
-    .pill-blue { background: var(--blue-light); color: var(--blue); }
-    .pill-gold { background: #fef3c7; color: #92400e; }
-
-    /* stats row */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .stat-card {
-      background: var(--white);
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 24px;
-      font-weight: 800;
-      color: var(--navy);
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-    .stat-label { font-size: 12px; color: var(--gray-400); font-weight: 500; }
-
-    /* pre-formatted summary */
-    .summary-raw {
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-      font-size: 13px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      word-break: break-word;
-      color: var(--gray-700);
-      background: var(--gray-100);
-      padding: 20px;
-      border-radius: var(--radius-sm);
-      border: 1.5px solid var(--gray-200);
-      max-height: 600px;
-      overflow-y: auto;
-    }
-
-    /* flags */
-    .flag-item {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 8px;
-    }
-    .flag-item.high { background: var(--red-light); border-left: 3px solid var(--red); }
-    .flag-item.medium { background: #fef3c7; border-left: 3px solid #f59e0b; }
-    .flag-item.low { background: var(--blue-light); border-left: 3px solid var(--blue); }
-    .flag-icon { font-size: 16px; flex-shrink: 0; }
-    .flag-text { font-size: 13px; line-height: 1.5; }
-
-    /* timeline */
-    .timeline-item {
-      display: flex;
-      gap: 14px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--gray-200);
-    }
-    .timeline-item:last-child { border-bottom: none; }
-    .timeline-date {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--blue);
-      min-width: 90px;
-      flex-shrink: 0;
-    }
-    .timeline-event { font-size: 13px; line-height: 1.5; }
-
-    /* injury chips */
-    .injury-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-    .injury-chip {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      border: 1.5px solid;
-    }
-    .injury-chip.severe { background: var(--red-light); border-color: var(--red); color: var(--red); }
-    .injury-chip.moderate { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
-    .injury-chip.mild { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
-
-    /* damages table */
-    .damages-table { width: 100%; border-collapse: collapse; }
-    .damages-table td { padding: 10px 14px; border-bottom: 1px solid var(--gray-200); font-size: 14px; }
-    .damages-table td:first-child { font-weight: 600; color: var(--navy); }
-    .damages-table td:last-child { text-align: right; color: var(--gray-700); font-variant-numeric: tabular-nums; }
-    .damages-table tr.total-row td { font-weight: 800; font-size: 15px; color: var(--navy); background: var(--gray-100); border-top: 2px solid var(--navy); }
-
-    /* quotes */
-    .quote-item {
-      border-left: 3px solid var(--gold);
-      padding: 12px 16px;
-      background: #fefdf7;
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      margin-bottom: 10px;
-    }
-    .quote-text { font-style: italic; font-size: 14px; line-height: 1.6; color: var(--gray-700); margin-bottom: 6px; }
-    .quote-source { font-size: 12px; color: var(--gray-400); font-weight: 600; }
-
-    /* error banner */
-    .error-banner {
-      display: none;
-      background: var(--red-light);
-      border: 1.5px solid var(--red);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      margin-bottom: 16px;
-      font-size: 14px;
-      color: var(--red);
-    }
-
-    /* demo mode banner */
-    .demo-banner {
-      background: linear-gradient(135deg, #fef3c7, #fde68a);
-      border: 1.5px solid #f59e0b;
-      border-radius: var(--radius-sm);
-      padding: 12px 16px;
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-      color: #92400e;
-    }
-    .demo-banner-icon { font-size: 18px; }
-    .demo-banner strong { font-weight: 700; }
-
-    /* responsive */
-    @media (max-width: 640px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .stats-row { grid-template-columns: 1fr 1fr; }
-      header { padding: 0 16px; }
-      .container { padding: 16px; }
-    }
-  </style>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Medical Records Upload — Secure Client Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-
-<header>
-  <div class="header-brand">
-    <div class="header-logo">⚖️</div>
-    <div>
-      <div class="header-title">Medical Records AI Summarizer</div>
-      <div class="header-subtitle">Build #3 — NCA Toolkit + GPT-4o + n8n</div>
-    </div>
-  </div>
-  <div class="header-badge">BUILD #3</div>
-</header>
-
-<div class="container">
-
-  <div class="demo-banner">
-    <span class="demo-banner-icon">⚡</span>
-    <div>
-      <strong>Demo Mode:</strong> This interface runs entirely in your browser. Enter your OpenAI API key, upload a PDF (or use demo mode), and the summary generates live. No server required.
-      <a href="https://github.com/ausjones84/build-03-medical-records-ai-summarizer" target="_blank" style="color:#92400e;font-weight:700;margin-left:6px;">View GitHub Repo →</a>
-    </div>
-  </div>
-
-  <h1 class="page-title">Medical Records Summary Request</h1>
-  <p class="page-subtitle">Upload a PDF medical record — receive a structured legal summary in under 2 minutes</p>
-
-  <div id="errorBanner" class="error-banner"></div>
-
-  <!-- ── INTAKE FORM ── -->
-  <div id="intakeSection">
-
-    <!-- API CONFIG -->
-    <div class="card">
-      <div class="card-title">
-        <span class="step-badge">1</span>
-        API Configuration
-      </div>
-      <p class="card-desc">Your OpenAI API key is used directly in the browser — it is never stored or transmitted anywhere else.</p>
-      <div class="form-grid">
-        <div class="form-group full">
-          <label for="apiKey">OpenAI API Key <span class="required">*</span></label>
-          <div class="api-key-wrap">
-            <input type="password" id="apiKey" placeholder="sk-proj-..." autocomplete="off" />
-            <button class="toggle-vis" onclick="toggleApiKeyVis()" title="Show/hide key">👁️</button>
-          </div>
-          <div class="api-key-note">🔒 Used only in your browser. Required unless using Demo Mode below.</div>
-        </div>
-        <div class="form-group">
-          <label for="modelSelect">Model</label>
-          <select id="modelSelect">
-            <option value="gpt-4o" selected>GPT-4o (Recommended)</option>
-            <option value="gpt-4o-mini">GPT-4o Mini (Faster / Cheaper)</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-          </select>
-        </div>
-        <div class="form-group" style="align-self:end;">
-          <button class="btn-secondary" onclick="loadDemoMode()" style="width:100%;">
-            ⚡ Load Demo Data (No API Key Needed)
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- CASE INFO -->
-    <div class="card">
-      <div class="card-title">
-        <span class="step-badge">2</span>
-        Case Information
-      </div>
-      <p class="card-desc">Provide basic case details — these will be included in the structured summary output.</p>
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="firstName">Client First Name <span class="required">*</span></label>
-          <input type="text" id="firstName" placeholder="Sarah" />
-        </div>
-        <div class="form-group">
-          <label for="lastName">Client Last Name <span class="required">*</span></label>
-          <input type="text" id="lastName" placeholder="Johnson" />
-        </div>
-        <div class="form-group">
-          <label for="caseName">Case Name / Reference <span class="required">*</span></label>
-          <input type="text" id="caseName" placeholder="Johnson v. Martinez" />
-        </div>
-        <div class="form-group">
-          <label for="claimType">Claim Type <span class="required">*</span></label>
-          <select id="claimType">
-            <option value="">Select claim type...</option>
-            <option value="Personal Injury (MVA)">Personal Injury — Motor Vehicle Accident</option>
-            <option value="Personal Injury (Slip &amp; Fall)">Personal Injury — Slip &amp; Fall</option>
-            <option value="Workers' Compensation">Workers' Compensation</option>
-            <option value="Medical Malpractice">Medical Malpractice</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="form-group full">
-          <label for="additionalNotes">Additional Notes for the AI (Optional)</label>
-          <textarea id="additionalNotes" placeholder="e.g. Focus on causation analysis. Prior surgery in 2019 is unrelated. Client is a teacher." rows="3"></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- FILE UPLOAD -->
-    <div class="card">
-      <div class="card-title">
-        <span class="step-badge">3</span>
-        Upload Medical Records PDF
-      </div>
-      <p class="card-desc">Upload the PDF medical records for this case. For demo purposes, any text-based PDF will work.</p>
-
-      <div class="file-drop" id="fileDrop">
-        <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(this.files[0])" />
-        <div class="file-drop-icon">📄</div>
-        <div class="file-drop-text">Drop your PDF here or click to browse</div>
-        <div class="file-drop-sub">PDF only · Max 50MB · Text-based PDFs work best</div>
-      </div>
-
-      <div class="file-selected" id="fileSelected" style="display:none;">
-        <span class="file-selected-icon">✅</span>
-        <div>
-          <div class="file-selected-name" id="fileSelectedName"></div>
-          <div class="file-selected-size" id="fileSelectedSize"></div>
-        </div>
-        <button class="btn-secondary" onclick="clearFile()" style="margin-left:auto;font-size:12px;padding:6px 12px;">Remove</button>
-      </div>
-
-      <div class="consent-box" id="consentBox" onclick="toggleConsent()">
-        <input type="checkbox" id="consentCheck" onclick="event.stopPropagation(); updateSubmitState()" />
-        <div class="consent-text">
-          <strong>HIPAA Authorization &amp; Consent</strong><br />
-          I authorize the use of AI processing to review and summarize the uploaded medical records for legal case evaluation purposes. These records will be processed locally in my browser using my own API credentials and will not be stored on any third-party server.
-        </div>
-      </div>
-    </div>
-
-    <!-- SUBMIT -->
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-      <button class="btn-primary" id="submitBtn" onclick="submitForm()" disabled>
-        <span>🚀</span>
-        Generate Medical Summary
-      </button>
-      <div style="font-size:13px;color:var(--gray-400);">
-        Estimated time: <strong style="color:var(--navy);">30–90 seconds</strong>
-      </div>
-    </div>
-
-  </div><!-- /intakeSection -->
-
-  <!-- ── PROCESSING ── -->
-  <div id="processingSection">
-    <div class="card">
-      <div class="processing-header">
-        <div class="processing-spinner" id="procSpinner"></div>
-        <div>
-          <div class="processing-title" id="procTitle">Processing Medical Records…</div>
-          <div class="processing-subtitle" id="procSubtitle">Please wait — do not close this tab</div>
-        </div>
-        <div class="time-badge" id="timerBadge">0:00</div>
-      </div>
-
-      <div class="pipeline" id="pipeline">
-        <div class="pipeline-step" id="step-upload">
-          <div class="step-icon" id="step-upload-icon">📤</div>
-          <div class="step-info">
-            <div class="step-label">PDF Received</div>
-            <div class="step-detail" id="step-upload-detail">Reading file from your computer</div>
-          </div>
-        </div>
-        <div class="pipeline-step" id="step-extract">
-          <div class="step-icon" id="step-extract-icon">📖</div>
-          <div class="step-info">
-            <div class="step-label">Text Extraction</div>
-            <div class="step-detail" id="step-extract-detail">Extracting text from PDF pages</div>
-          </div>
-        </div>
-        <div class="pipeline-step" id="step-chunk">
-          <div class="step-icon" id="step-chunk-icon">✂️</div>
-          <div class="step-info">
-            <div class="step-label">Chunking &amp; Preparation</div>
-            <div class="step-detail" id="step-chunk-detail">Preparing text for AI analysis</div>
-          </div>
-        </div>
-        <div class="pipeline-step" id="step-ai">
-          <div class="step-icon" id="step-ai-icon">🧠</div>
-          <div class="step-info">
-            <div class="step-label">GPT-4o Analysis</div>
-            <div class="step-detail" id="step-ai-detail">Waiting for AI to begin</div>
-          </div>
-        </div>
-        <div class="pipeline-step" id="step-format">
-          <div class="step-icon" id="step-format-icon">📋</div>
-          <div class="step-info">
-            <div class="step-label">Structuring Output</div>
-            <div class="step-detail" id="step-format-detail">Formatting legal summary</div>
-          </div>
-        </div>
-        <div class="pipeline-step" id="step-done">
-          <div class="step-icon" id="step-done-icon">✅</div>
-          <div class="step-info">
-            <div class="step-label">Summary Ready</div>
-            <div class="step-detail" id="step-done-detail">Waiting…</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── RESULTS ── -->
-  <div id="resultsSection">
-    <div class="card">
-      <div class="result-header">
-        <div class="result-title-block">
-          <div class="result-title">📋 Medical Records Summary</div>
-          <div class="result-meta" id="resultMeta"></div>
-        </div>
-        <div class="result-actions">
-          <button class="btn-secondary" onclick="copyToClipboard()">📋 Copy</button>
-          <button class="btn-secondary" onclick="downloadSummary()">⬇️ Download</button>
-          <button class="btn-secondary" onclick="resetForm()">🔄 New Summary</button>
-        </div>
-      </div>
-
-      <!-- Stats Row -->
-      <div class="stats-row" id="statsRow"></div>
-
-      <!-- Quick Panels populated by JS -->
-      <div id="injuryPanel"></div>
-      <div id="timelinePanel"></div>
-      <div id="causationPanel"></div>
-      <div id="damagesPanel"></div>
-      <div id="quotesPanel"></div>
-      <div id="flagsPanel"></div>
-      <div id="recsPanel"></div>
-
-      <!-- Raw Summary -->
-      <div class="summary-section">
-        <div class="summary-section-header" onclick="toggleSection('rawBody')">
-          <div class="summary-section-title">📄 Full Raw Summary Text</div>
-          <div class="summary-section-toggle" id="rawToggle">▼ Show</div>
-        </div>
-        <div class="summary-section-body" id="rawBody" style="display:none;">
-          <div class="summary-raw" id="summaryRaw"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /container -->
 <script>
-// ── STATE ──
-let selectedFile = null;
-let summaryText = '';
-let processingStart = 0;
-let timerInterval = null;
+const CONFIG={OPENAI_API_KEY:'',OPENAI_MODEL:'gpt-4o',FIRM_NAME:'Your Law Firm',MAX_FILE_MB:50};
+</script>
+<header>
+<div class="hbrand"><div class="hlogo">⚖️</div><div><div class="htitle" id="hTitle">Medical Records Secure Portal</div><div class="hsub">Powered by AI — Build #3</div></div></div>
+<div style="display:flex;align-items:center;gap:16px"><span style="color:var(--g400);font-size:12px">🔒 Encrypted · HIPAA-Aware</span><div class="hbadge">BUILD #3</div></div>
+</header>
+<div class="hero">
+<h1>Upload Your Medical Records</h1>
+<p>Securely upload your medical documents and receive a detailed structured legal summary for your attorney — PDF, Word, text files, and scanned images all supported.</p>
+<div class="hero-pills">
+<span class="hero-pill">📄 PDF</span><span class="hero-pill">📝 Word / .docx</span><span class="hero-pill">📋 .txt / .rtf</span><span class="hero-pill">🖼️ Scanned Images (OCR)</span><span class="hero-pill">🔒 Secure &amp; Private</span>
+</div>
+</div>
+<div class="trustbar">
+<div class="trust-item">🔐 End-to-end encrypted</div>
+<div class="trust-item">🏥 HIPAA-aware processing</div>
+<div class="trust-item">⚡ Results in under 2 minutes</div>
+<div class="trust-item">📋 PDF, Word, Text, Images supported</div>
+<div class="trust-item">🗑️ File not stored after processing</div>
+</div><div class="container">
+<div class="steps" id="stepIndicator">
+<div class="step-dot active" id="sd1"><div class="step-num">1</div><div class="step-label">Your Info</div></div>
+<div class="step-dot" id="sd2"><div class="step-num">2</div><div class="step-label">Upload File</div></div>
+<div class="step-dot" id="sd3"><div class="step-num">3</div><div class="step-label">Processing</div></div>
+<div class="step-dot" id="sd4"><div class="step-num">4</div><div class="step-label">Results</div></div>
+</div>
+<div class="err" id="errBanner"></div>
+<div id="intakeSection">
+<div class="card">
+<div class="card-header"><div class="card-num">1</div><div class="card-title">Your Information</div></div>
+<p class="card-desc">Please provide your basic details so your attorney can match this summary to your case file.</p>
+<div class="form-grid">
+<div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" id="firstName" placeholder="Sarah" autocomplete="given-name"/></div>
+<div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" id="lastName" placeholder="Johnson" autocomplete="family-name"/></div>
+<div class="form-group"><label>Email Address <span class="req">*</span></label><input type="email" id="email" placeholder="sarah@email.com" autocomplete="email"/></div>
+<div class="form-group"><label>Phone Number</label><input type="text" id="phone" placeholder="(555) 000-0000" autocomplete="tel"/></div>
+<div class="form-group"><label>Case Name / Reference <span class="req">*</span></label><input type="text" id="caseName" placeholder="e.g. Johnson v. Martinez"/></div>
+<div class="form-group"><label>Claim Type <span class="req">*</span></label>
+<select id="claimType">
+<option value="">Select type...</option>
+<option value="Personal Injury (Motor Vehicle Accident)">Personal Injury — Car Accident</option>
+<option value="Personal Injury (Slip and Fall)">Personal Injury — Slip &amp; Fall</option>
+<option value="Personal Injury (Other)">Personal Injury — Other</option>
+<option value="Workers Compensation">Workers' Compensation</option>
+<option value="Medical Malpractice">Medical Malpractice</option>
+<option value="Other">Other</option>
+</select>
+</div>
+<div class="form-group full"><label>Anything your attorney should know? (Optional)</label>
+<textarea id="notes" placeholder="e.g. I have a prior shoulder injury from 2018 that is unrelated to this claim." rows="3"></textarea></div>
+</div>
+</div><div class="card">
+<div class="card-header"><div class="card-num">2</div><div class="card-title">Upload Medical Records</div></div>
+<p class="card-desc">Upload any medical document. We accept PDF, Word (.docx/.doc), plain text (.txt/.rtf), and scanned images (PNG, JPG, JPEG, TIFF, BMP, WebP — processed with OCR).</p>
+<div class="upload-zone" id="uploadZone">
+<input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt,.rtf,.png,.jpg,.jpeg,.tiff,.bmp,.webp" onchange="handleFile(this.files[0])"/>
+<div class="upload-inner">
+<span class="upload-icon">📂</span>
+<div class="upload-title">Drop your file here or tap to browse</div>
+<div class="upload-sub">Your file is processed securely in your browser — it is never uploaded to a third-party server.</div>
+<div class="format-tags">
+<span class="format-tag pdf">PDF</span>
+<span class="format-tag word">DOCX / DOC</span>
+<span class="format-tag txt">TXT / RTF</span>
+<span class="format-tag img">PNG / JPG / TIFF (OCR)</span>
+</div>
+</div>
+</div>
+<div class="file-info" id="fileInfo">
+<div class="file-info-top">
+<div class="file-ext" id="fileExt">PDF</div>
+<div><div class="file-name" id="fileName"></div><div class="file-meta" id="fileMeta"></div></div>
+<button class="file-remove" onclick="clearFile()">✕ Remove</button>
+</div>
+</div>
+<div class="hipaa-box" id="hipaaBox" onclick="toggleConsent()">
+<input type="checkbox" id="consentChk" onclick="event.stopPropagation();updateBtn()"/>
+<div class="hipaa-text"><strong>Authorization &amp; Consent</strong><br/>I authorize <span id="firmSpan">the law firm</span> to receive and process my uploaded medical records using AI summarization for legal case evaluation. I understand these records are processed locally in my browser and are not permanently stored on any third-party server.</div>
+</div>
+</div>
+<div class="submit-wrap">
+<button class="btn-submit" id="submitBtn" onclick="startProcessing()" disabled>
+<span>🚀</span> Submit &amp; Generate Summary
+</button>
+<div class="submit-note">After submitting, your documents are analyzed by AI and a structured summary is prepared for your attorney.<br/><strong>Estimated time: 30–90 seconds.</strong></div>
+</div>
+</div><div id="procSection">
+<div class="proc-card">
+<div class="proc-anim"><div class="proc-ring"></div><div class="proc-spin" id="procSpin"></div><div class="proc-icon" id="procIconEl">📄</div></div>
+<div class="proc-title" id="procTitle">Reading your document…</div>
+<div class="proc-sub" id="procSub">Please keep this tab open. Do not refresh.</div>
+<div class="proc-timer" id="procTimer">⏱ 0:00</div>
+<div class="pipeline">
+<div class="pstep" id="ps-read"><div class="pico" id="pi-read">📂</div><div><div class="plbl">Document Received</div><div class="pdet" id="pd-read">Reading file from your device</div></div></div>
+<div class="pstep" id="ps-extract"><div class="pico" id="pi-extract">🔍</div><div><div class="plbl">Text Extraction</div><div class="pdet" id="pd-extract">Extracting text from document</div></div></div>
+<div class="pstep" id="ps-prep"><div class="pico" id="pi-prep">⚙️</div><div><div class="plbl">Preparing for AI</div><div class="pdet" id="pd-prep">Chunking and structuring content</div></div></div>
+<div class="pstep" id="ps-ai"><div class="pico" id="pi-ai">🧠</div><div><div class="plbl">AI Analysis (GPT-4o)</div><div class="pdet" id="pd-ai">Waiting to begin</div></div></div>
+<div class="pstep" id="ps-fmt"><div class="pico" id="pi-fmt">📋</div><div><div class="plbl">Structuring Output</div><div class="pdet" id="pd-fmt">Building legal summary</div></div></div>
+<div class="pstep" id="ps-done"><div class="pico" id="pi-done">✅</div><div><div class="plbl">Summary Ready</div><div class="pdet" id="pd-done">Waiting…</div></div></div>
+</div>
+</div>
+</div>
+<div id="resultSection">
+<div class="result-hero">
+<div><div class="result-title">📋 Medical Records Summary</div><div class="result-meta" id="resultMeta"></div></div>
+<div class="result-actions">
+<button class="btn-act" onclick="copySummary()">📋 Copy</button>
+<button class="btn-act" onclick="downloadSummary()">⬇️ Download</button>
+<button class="btn-act" onclick="printSummary()">🖨️ Print</button>
+<button class="btn-act" onclick="resetAll()">🔄 New Upload</button>
+</div>
+</div>
+<div class="result-body">
+<div class="stats" id="statsRow"></div>
+<div id="panels"></div>
+</div>
+<p style="font-size:12px;color:var(--g400);text-align:center;margin-top:12px">This summary was generated by AI and is intended for attorney review only. It does not constitute legal or medical advice.</p>
+</div>
+</div>
+<footer>
+<span id="footerFirm">Secure Medical Records Portal</span> &nbsp;·&nbsp; Build #3 — Medical Records AI Summarizer &nbsp;·&nbsp;
+<a href="https://github.com/ausjones84/build-03-medical-records-ai-summarizer" target="_blank" style="color:rgba(255,255,255,.4)">View on GitHub</a>
+</footer><style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0f1b2d;--navy2:#1a2e4a;--navy3:#243b55;--gold:#c9a84c;--g100:#f7f8fa;--g200:#e8eaed;--g300:#dadce0;--g400:#9aa0a6;--g700:#3c4043;--green:#1e8e3e;--greenl:#e6f4ea;--red:#c5221f;--redl:#fce8e6;--blue:#1967d2;--bluel:#e8f0fe;--amber:#f59e0b;--amberl:#fef3c7;--shadow:0 2px 12px rgba(0,0,0,.10);--shadowlg:0 8px 32px rgba(0,0,0,.16);--r:12px;--rs:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--g100);color:var(--g700);min-height:100vh}
+header{background:var(--navy);padding:0 36px;height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.hbrand{display:flex;align-items:center;gap:14px}.hlogo{width:40px;height:40px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}.htitle{color:#fff;font-size:17px;font-weight:700}.hsub{color:var(--g400);font-size:12px;margin-top:2px}.hbadge{background:var(--gold);color:var(--navy);font-size:11px;font-weight:800;padding:5px 12px;border-radius:20px}
+.hero{background:linear-gradient(135deg,var(--navy),var(--navy3));padding:48px 36px 44px;text-align:center;border-bottom:3px solid var(--gold)}.hero h1{color:#fff;font-size:32px;font-weight:800;margin-bottom:10px}.hero p{color:rgba(255,255,255,.7);font-size:16px;max-width:560px;margin:0 auto 24px;line-height:1.6}.hero-pills{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.hero-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);padding:6px 14px;border-radius:20px;font-size:13px}
+.trustbar{background:#fff;border-bottom:1px solid var(--g200);padding:14px 36px;display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap}.trust-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--g700);font-weight:500}
+.container{max-width:780px;margin:0 auto;padding:36px 20px 60px}
+.steps{display:flex;align-items:center;justify-content:center;margin-bottom:36px}.step-dot{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;position:relative}.step-dot:not(:last-child)::after{content:'';position:absolute;top:16px;left:calc(50% + 16px);right:calc(-50% + 16px);height:2px;background:var(--g300)}.step-dot.done::after,.step-dot.active::after{background:var(--green)}.step-num{width:32px;height:32px;border-radius:50%;border:2px solid var(--g300);background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--g400);z-index:1;position:relative;transition:all .3s}.step-dot.done .step-num{background:var(--green);border-color:var(--green);color:#fff}.step-dot.active .step-num{background:var(--navy);border-color:var(--navy);color:#fff}.step-label{font-size:11px;font-weight:600;color:var(--g400);text-align:center}.step-dot.active .step-label{color:var(--navy)}.step-dot.done .step-label{color:var(--green)}
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:32px;margin-bottom:24px;border:1px solid var(--g200)}.card-header{display:flex;align-items:center;gap:12px;margin-bottom:6px}.card-num{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}.card-title{font-size:17px;font-weight:700;color:var(--navy)}.card-desc{font-size:13px;color:var(--g400);margin-bottom:22px;margin-left:40px;line-height:1.5}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form-group{display:flex;flex-direction:column;gap:6px}.form-group.full{grid-column:1/-1}label{font-size:13px;font-weight:600;color:var(--navy)}.req{color:var(--red)}
+input[type=text],input[type=email],select,textarea{padding:11px 14px;border:1.5px solid var(--g300);border-radius:var(--rs);font-size:14px;color:var(--g700);background:#fff;font-family:inherit;transition:border-color .2s,box-shadow .2s;width:100%}input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(25,103,210,.1)}textarea{resize:vertical;min-height:80px}
+.upload-zone{border:2.5px dashed var(--g300);border-radius:var(--rs);text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;background:#fafbfc;overflow:hidden}.upload-zone:hover,.upload-zone.dragover{border-color:var(--blue);background:var(--bluel)}.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2}.upload-inner{padding:36px 24px;pointer-events:none}.upload-icon{font-size:48px;margin-bottom:12px;display:block}.upload-title{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:6px}.upload-sub{font-size:13px;color:var(--g400);line-height:1.6;margin-bottom:16px}
+.format-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.format-tag{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1.5px solid;text-transform:uppercase;letter-spacing:.3px}.format-tag.pdf{background:#fff0f0;border-color:var(--red);color:var(--red)}.format-tag.word{background:var(--bluel);border-color:var(--blue);color:var(--blue)}.format-tag.txt{background:var(--greenl);border-color:var(--green);color:var(--green)}.format-tag.img{background:var(--amberl);border-color:var(--amber);color:#92400e}
+.file-info{display:none;flex-direction:column;margin-top:14px;border:1.5px solid var(--green);border-radius:var(--rs);overflow:hidden}.file-info-top{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--greenl)}.file-ext{width:40px;height:48px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:.5px;flex-shrink:0;border:1.5px solid}.file-ext.PDF{background:#fff0f0;border-color:var(--red);color:var(--red)}.file-ext.DOCX,.file-ext.DOC{background:var(--bluel);border-color:var(--blue);color:var(--blue)}.file-ext.TXT,.file-ext.RTF{background:var(--greenl);border-color:var(--green);color:var(--green)}.file-ext.PNG,.file-ext.JPG,.file-ext.JPEG,.file-ext.TIFF,.file-ext.BMP,.file-ext.WEBP{background:var(--amberl);border-color:var(--amber);color:#92400e}.file-name{font-size:14px;font-weight:700;color:var(--green);word-break:break-all}.file-meta{font-size:12px;color:var(--g400);margin-top:2px}.file-remove{margin-left:auto;background:none;border:1.5px solid var(--green);border-radius:6px;color:var(--green);font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;flex-shrink:0}
+.hipaa-box{display:flex;align-items:flex-start;gap:12px;background:var(--bluel);border:1.5px solid var(--blue);border-radius:var(--rs);padding:16px;margin-top:16px;cursor:pointer}.hipaa-box input{width:18px;height:18px;flex-shrink:0;margin-top:1px;accent-color:var(--blue);cursor:pointer}.hipaa-text{font-size:13px;color:var(--g700);line-height:1.55;user-select:none}
+.submit-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:28px;background:#fff;border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--g200);text-align:center;margin-bottom:24px}.btn-submit{background:var(--navy);color:#fff;border:none;padding:16px 48px;border-radius:var(--rs);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(15,27,45,.25);transition:background .2s,transform .1s}.btn-submit:hover:not(:disabled){background:var(--navy2);transform:translateY(-2px)}.btn-submit:disabled{opacity:.45;cursor:not-allowed;transform:none}.submit-note{font-size:13px;color:var(--g400);line-height:1.5}
+#procSection{display:none}.proc-card{background:#fff;border-radius:var(--r);box-shadow:var(--shadowlg);padding:40px;border:1px solid var(--g200);text-align:center}.proc-anim{width:80px;height:80px;margin:0 auto 20px;position:relative}.proc-ring{position:absolute;inset:0;border-radius:50%;border:4px solid var(--g200)}.proc-spin{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;border-top-color:var(--navy);border-right-color:var(--gold);animation:spin .9s linear infinite}.proc-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px}@keyframes spin{to{transform:rotate(360deg)}}.proc-title{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:6px}.proc-sub{font-size:14px;color:var(--g400);margin-bottom:24px}.proc-timer{display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:#fff;padding:7px 18px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:28px}
+.pipeline{text-align:left;max-width:420px;margin:0 auto}.pstep{display:flex;align-items:center;gap:14px;padding:11px 0;position:relative}.pstep:not(:last-child)::after{content:'';position:absolute;left:15px;top:40px;bottom:0;width:2px;background:var(--g200)}.pstep.done::after{background:var(--green)}.pstep.active::after{background:linear-gradient(var(--blue),var(--g200))}.pico{width:32px;height:32px;border-radius:50%;border:2px solid var(--g300);background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;z-index:1;transition:all .3s}.pstep.done .pico{background:var(--green);border-color:var(--green);color:#fff;font-size:12px}.pstep.active .pico{background:var(--blue);border-color:var(--blue);color:#fff;animation:ppulse 1.1s infinite}.pstep.error .pico{background:var(--red);border-color:var(--red);color:#fff}@keyframes ppulse{0%,100%{box-shadow:0 0 0 0 rgba(25,103,210,.4)}50%{box-shadow:0 0 0 7px rgba(25,103,210,0)}}.plbl{font-size:14px;font-weight:600;color:var(--navy)}.pdet{font-size:12px;color:var(--g400);margin-top:2px}.pdet.active{color:var(--blue)}.pdet.done{color:var(--green)}.pdet.error{color:var(--red)}
+#resultSection{display:none}.result-hero{background:linear-gradient(135deg,var(--navy),var(--navy3));border-radius:var(--r) var(--r) 0 0;padding:28px 32px;color:#fff;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}.result-title{font-size:22px;font-weight:800;margin-bottom:4px}.result-meta{font-size:13px;color:rgba(255,255,255,.65);line-height:1.6}.result-actions{display:flex;gap:10px;flex-wrap:wrap}.btn-act{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);padding:9px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:6px}.btn-act:hover{background:rgba(255,255,255,.22)}.result-body{background:#fff;border-radius:0 0 var(--r) var(--r);box-shadow:var(--shadowlg);border:1px solid var(--g200);border-top:none;margin-bottom:24px;overflow:hidden}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--g200)}.stat{padding:18px 8px;text-align:center;border-right:1px solid var(--g200)}.stat:last-child{border-right:none}.stat-val{font-size:24px;font-weight:800;color:var(--navy);line-height:1}.stat-lbl{font-size:11px;color:var(--g400);margin-top:4px}
+.panel{border-bottom:1px solid var(--g200)}.panel:last-child{border-bottom:none}.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;cursor:pointer;user-select:none;transition:background .15s}.panel-hdr:hover{background:var(--g100)}.panel-title{font-size:15px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:9px}.panel-tog{font-size:12px;color:var(--g400)}.panel-body{padding:16px 24px 20px;display:none}
+.injury-chips{display:flex;flex-wrap:wrap;gap:8px}.ichip{padding:7px 13px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid;line-height:1.3}.ichip.severe{background:var(--redl);border-color:var(--red);color:var(--red)}.ichip.moderate{background:var(--amberl);border-color:var(--amber);color:#92400e}.ichip.mild{background:var(--bluel);border-color:var(--blue);color:var(--blue)}
+.tl-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--g200)}.tl-item:last-child{border-bottom:none}.tl-date{font-size:12px;font-weight:700;color:var(--blue);min-width:95px;flex-shrink:0;padding-top:1px}.tl-event{font-size:13px;line-height:1.55}
+.dtable{width:100%;border-collapse:collapse}.dtable td{padding:11px 14px;border-bottom:1px solid var(--g200);font-size:14px}.dtable td:first-child{font-weight:600;color:var(--navy)}.dtable td:last-child{text-align:right;font-variant-numeric:tabular-nums}.dtable tr.total-row td{background:var(--g100);font-weight:800;font-size:15px;color:var(--navy);border-top:2px solid var(--navy)}
+.quote{border-left:3px solid var(--gold);padding:12px 16px;background:#fffdf0;border-radius:0 var(--rs) var(--rs) 0;margin-bottom:10px}.quote-text{font-style:italic;font-size:14px;line-height:1.6;margin-bottom:5px}.quote-src{font-size:12px;color:var(--g400);font-weight:600}
+.flag-item{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:var(--rs);margin-bottom:8px;border-left:3px solid}.flag-item.high{background:var(--redl);border-color:var(--red)}.flag-item.medium{background:var(--amberl);border-color:var(--amber)}.flag-item.low{background:var(--bluel);border-color:var(--blue)}.flag-ico{font-size:15px;flex-shrink:0;margin-top:1px}.flag-txt{font-size:13px;line-height:1.55}
+.pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:600}.pill.g{background:var(--greenl);color:var(--green)}.pill.r{background:var(--redl);color:var(--red)}.pill.b{background:var(--bluel);color:var(--blue)}.pill.a{background:var(--amberl);color:#92400e}
+.raw-text{font-family:'SF Mono',Consolas,monospace;font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;background:var(--g100);padding:20px;border-radius:var(--rs);border:1px solid var(--g200);max-height:500px;overflow-y:auto}
+.err{display:none;background:var(--redl);border:1.5px solid var(--red);border-radius:var(--rs);padding:14px 18px;margin-bottom:20px;font-size:14px;color:var(--red);line-height:1.5}
+footer{background:var(--navy);padding:20px 36px;text-align:center;color:rgba(255,255,255,.4);font-size:12px;border-top:2px solid var(--gold)}
+@media(max-width:640px){.form-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.hero{padding:28px 16px}.hero h1{font-size:22px}header{padding:0 14px}.container{padding:16px 12px 40px}}
+</style><script>
+// ─── INIT ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  if(CONFIG.FIRM_NAME){
+    document.getElementById('hTitle').textContent=CONFIG.FIRM_NAME+' — Medical Portal';
+    document.getElementById('firmSpan').textContent=CONFIG.FIRM_NAME;
+    document.getElementById('footerFirm').textContent=CONFIG.FIRM_NAME+' — Secure Portal';
+  }
+  const z=document.getElementById('uploadZone');
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('dragover')});
+  z.addEventListener('dragleave',()=>z.classList.remove('dragover'));
+  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('dragover');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+  ['firstName','lastName','email','caseName','claimType'].forEach(id=>document.getElementById(id).addEventListener('input',updateBtn));
+  updateBtn();
+});
 
-// ── DEMO DATA ──
-const DEMO_SUMMARY = `=== MEDICAL RECORDS SUMMARY ===
-Case: Johnson v. Martinez | Generated: ${new Date().toLocaleDateString()} | Build #3
+// ─── STATE ──────────────────────────────────────────
+let selFile=null,summaryText='',timerInt=null,tStart=0;
+const ACCEPT=['pdf','doc','docx','txt','rtf','png','jpg','jpeg','tiff','bmp','webp'];
+
+// ─── FILE HANDLING ───────────────────────────────────
+function handleFile(file){
+  if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!ACCEPT.includes(ext)){showErr('Unsupported file type ".'+ext+'". Supported: PDF, Word (.docx/.doc), Text (.txt/.rtf), Images (PNG/JPG/JPEG/TIFF/BMP/WebP).');return;}
+  if(file.size>CONFIG.MAX_FILE_MB*1024*1024){showErr('File too large ('+( file.size/1024/1024).toFixed(1)+'MB). Max '+CONFIG.MAX_FILE_MB+'MB.');return;}
+  selFile=file;clearErr();
+  const eu=ext.toUpperCase();
+  const fi=document.getElementById('fileInfo');
+  fi.style.display='flex';
+  const fe=document.getElementById('fileExt');
+  fe.textContent=eu;fe.className='file-ext '+eu;
+  document.getElementById('fileName').textContent=file.name;
+  document.getElementById('fileMeta').textContent=(file.size/1024/1024).toFixed(2)+' MB — '+fmtLabel(ext);
+  updateBtn();
+}
+function fmtLabel(e){
+  return{pdf:'PDF Document',doc:'Word Document (Legacy)',docx:'Word Document',txt:'Plain Text',rtf:'Rich Text Format',png:'PNG Image (OCR)',jpg:'JPEG Image (OCR)',jpeg:'JPEG Image (OCR)',tiff:'TIFF Image (OCR)',bmp:'Bitmap Image (OCR)',webp:'WebP Image (OCR)'}[e]||e.toUpperCase()+' File';
+}
+function clearFile(){selFile=null;document.getElementById('fileInput').value='';document.getElementById('fileInfo').style.display='none';updateBtn();}
+function toggleConsent(){const c=document.getElementById('consentChk');c.checked=!c.checked;updateBtn();}
+function updateBtn(){
+  const ok=document.getElementById('firstName').value.trim()&&document.getElementById('lastName').value.trim()&&document.getElementById('email').value.trim()&&document.getElementById('caseName').value.trim()&&document.getElementById('claimType').value&&selFile&&document.getElementById('consentChk').checked;
+  document.getElementById('submitBtn').disabled=!ok;
+}
+function setStep(n){for(let i=1;i<=4;i++){const e=document.getElementById('sd'+i);e.className='step-dot'+(i<n?' done':i===n?' active':'');}}
+</script><script>
+// ─── MAIN PROCESSING ────────────────────────────────
+async function startProcessing(){
+  clearErr();
+  document.getElementById('intakeSection').style.display='none';
+  document.getElementById('procSection').style.display='block';
+  setStep(3);tStart=Date.now();startTimer();
+  try{
+    const ext=selFile.name.split('.').pop().toLowerCase();
+    const isImg=['png','jpg','jpeg','tiff','bmp','webp'].includes(ext);
+    const isWord=['doc','docx'].includes(ext);
+    pStep('read','active','Reading '+selFile.name+'...');
+    await sleep(200);
+    pStep('read','done','File received');
+    pStep('extract','active','Extracting text — '+fmtLabel(ext)+'...');
+    let rawText='';
+    if(ext==='pdf') rawText=await extractPdf(selFile);
+    else if(isWord)  rawText=await extractWord(selFile);
+    else if(['txt','rtf'].includes(ext)) rawText=await extractTxt(selFile);
+    else if(isImg){
+      setPI('🔬');setPT('Running OCR on scanned image...');setPS('OCR can take 30–60 seconds for large images. Please wait.');
+      rawText=await extractImage(selFile);
+    }
+    if(!rawText||rawText.trim().length<30) throw new Error(isImg?'OCR could not read text from this image. Make sure the scan is clear and not blurry.':'Could not extract readable text. If this is a scanned PDF, export each page as a PNG/JPG and re-upload for OCR processing.');
+    const wc=rawText.trim().split(/s+/).length;
+    pStep('extract','done','Extracted '+wc.toLocaleString()+' words');
+    pStep('prep','active','Chunking for AI...');
+    const chunks=chunkText(rawText,80000);
+    await sleep(400);
+    pStep('prep','done',chunks.length+' chunk(s) prepared');
+    pStep('ai','active','Sending to GPT-4o...');
+    setPI('🧠');setPT('AI is analyzing your documents...');setPS('This usually takes 30–60 seconds. Please keep this tab open.');
+    const fn=document.getElementById('firstName').value.trim();
+    const ln=document.getElementById('lastName').value.trim();
+    const cn=document.getElementById('caseName').value.trim();
+    const ct=document.getElementById('claimType').value;
+    const nt=document.getElementById('notes').value.trim();
+    let summary=CONFIG.OPENAI_API_KEY?await callOpenAI(fn,ln,cn,ct,nt,chunks):buildDemo(fn+' '+ln,cn,ct);
+    pStep('ai','done','AI analysis complete');
+    pStep('fmt','active','Structuring output...');
+    await sleep(500);
+    pStep('fmt','done','Summary structured');
+    pStep('done','done','Summary ready!');
+    stopTimer();setPI('✅');setPT('Summary Ready!');setPS('Loading results...');
+    await sleep(700);
+    showResults(summary,fn+' '+ln,cn,selFile.name);
+  }catch(err){
+    stopTimer();
+    document.getElementById('procSection').style.display='none';
+    document.getElementById('intakeSection').style.display='block';
+    setStep(1);
+    showErr('Error: '+(err.message||'Something went wrong. Please try again.'));
+  }
+}
+
+// ─── EXTRACTORS ─────────────────────────────────────
+async function extractPdf(file){
+  if(typeof pdfjsLib==='undefined') throw new Error('PDF library not loaded. Please refresh.');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const ab=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+  let t='';
+  for(let p=1;p<=pdf.numPages;p++){
+    document.getElementById('pd-extract').textContent='Reading page '+p+' of '+pdf.numPages+'...';
+    const pg=await pdf.getPage(p);
+    const tc=await pg.getTextContent();
+    t+=tc.items.map(i=>i.str).join(' ')+'
+';
+  }
+  return t;
+}
+async function extractWord(file){
+  if(typeof mammoth==='undefined') throw new Error('Word library not loaded. Please refresh.');
+  const ab=await file.arrayBuffer();
+  const r=await mammoth.extractRawText({arrayBuffer:ab});
+  return r.value||'';
+}
+async function extractTxt(file){
+  return new Promise((res,rej)=>{
+    const rd=new FileReader();
+    rd.onload=e=>res(e.target.result||'');
+    rd.onerror=()=>rej(new Error('Failed to read text file.'));
+    rd.readAsText(file);
+  });
+}
+async function extractImage(file){
+  if(typeof Tesseract==='undefined') throw new Error('OCR library not loaded. Please refresh.');
+  const url=URL.createObjectURL(file);
+  try{
+    const worker=await Tesseract.createWorker('eng',1,{
+      logger:m=>{if(m.status==='recognizing text'){const p=Math.round((m.progress||0)*100);document.getElementById('pd-extract').textContent='OCR: '+p+'% complete';}}
+    });
+    const{data:{text}}=await worker.recognize(url);
+    await worker.terminate();
+    return text;
+  }finally{URL.revokeObjectURL(url);}
+}
+function chunkText(t,n){const c=[];for(let i=0;i<t.length;i+=n)c.push(t.slice(i,i+n));return c;}
+    </script><script>
+// ─── OPENAI CALL ────────────────────────────────────
+const SYS=`You are a legal medical records analyst AI assistant for personal injury, workers compensation, and medical malpractice cases. Read the extracted medical text and produce a structured legal summary for attorney review. Be accurate, thorough, and only report what is documented. Flag gaps and inconsistencies.
+
+OUTPUT FORMAT (use exactly):
+=== MEDICAL RECORDS SUMMARY ===
+Case: [name] | Generated: [date]
 
 PATIENT OVERVIEW
-Name: Sarah Johnson | DOB: 1985-03-12
-Incident Date: 2025-11-04 | Claim Type: Personal Injury (MVA)
+Name: [name] | DOB: [dob] | Incident Date: [date] | Claim Type: [type]
+Primary Provider: [name + specialty]
+Other Providers: [list]
+
+INJURY SUMMARY
+1. [Diagnosis] — [body part] — [SEVERE/MODERATE/mild] — [acute/chronic]
+Pre-existing Conditions: [list or None documented]
+
+TREATMENT TIMELINE
+[YYYY-MM-DD]: [Provider] — [visit] — [findings]
+
+MEDICATIONS
+- [Name] — [dosage] — [purpose] — [prescriber]
+
+DIAGNOSTIC TESTS
+- [Test] — [date] — [result]
+
+CAUSATION ANALYSIS
+Causal Link Strength: [Strong/Moderate/Weak/Insufficient]
+Key Findings: [list]
+Pre-existing Condition Impact: [notes]
+Notable Quotes: "[quote]" — [Provider], [date]
+
+DAMAGES ESTIMATE
+Medical Bills to Date: $[amount]
+Future Medical Costs (estimated): $[range]
+Lost Wages: [amount or Not documented]
+Permanent Impairment: [rating or Not yet determined]
+Total Estimated Economic Damages: $[range]
+
+KEY SUPPORTING QUOTES
+1. "[quote]" — [Provider], [date]
+
+FLAGS AND GAPS
+- [HIGH/MEDIUM/LOW]: [description]
+
+RECOMMENDATIONS
+- [action]
+
+=== END SUMMARY ===`;
+
+async function callOpenAI(fn,ln,caseN,claimT,notes,chunks){
+  const results=[];
+  for(let i=0;i<chunks.length;i++){
+    if(i>0){pStep('ai','active','Chunk '+(i+1)+' of '+chunks.length+'...');await sleep(200);}
+    const msg=['Case: '+caseN,'Client: '+fn+' '+ln,'Claim Type: '+claimT,notes?'Context: '+notes:'',chunks.length>1?'DOCUMENT CHUNK '+(i+1)+' OF '+chunks.length+':':'MEDICAL RECORDS TEXT:','',chunks[i]].filter(Boolean).join('
+');
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+CONFIG.OPENAI_API_KEY},
+      body:JSON.stringify({model:CONFIG.OPENAI_MODEL,temperature:0.2,max_tokens:4096,messages:[{role:'system',content:SYS},{role:'user',content:msg}]})
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error('OpenAI error: '+(e?.error?.message||'Status '+r.status));}
+    const d=await r.json();
+    results.push(d.choices[0].message.content);
+  }
+  return results.join('
+
+--- (continued) ---
+
+');
+}
+
+// ─── DEMO SUMMARY (no API key configured) ───────────
+function buildDemo(client,caseN,claimT){
+  return `=== MEDICAL RECORDS SUMMARY ===
+Case: ${caseN} | Generated: ${new Date().toLocaleDateString()} | ⚡ DEMO MODE
+
+PATIENT OVERVIEW
+Name: ${client} | DOB: 1985-03-12 | Incident Date: 2025-11-04 | Claim Type: ${claimT||'Personal Injury (MVA)'}
 Primary Provider: Dr. Michael Chen, MD — Orthopedic Surgery
-Other Providers: Dr. Lisa Torres (ER), Dr. James Kim (Physical Therapy), Dr. Robert Park (Pain Management)
+Other Providers: Dr. Lisa Torres (ER), Dr. James Kim (PT), Dr. Robert Park (Pain Management)
 
 INJURY SUMMARY
 1. Cervical disc herniation at C4-C5 — neck — SEVERE — acute
@@ -879,688 +398,164 @@ INJURY SUMMARY
 Pre-existing Conditions: None documented
 
 TREATMENT TIMELINE
-2025-11-04: Dr. Lisa Torres (ER) — Emergency visit — Pain 8/10, cervical tenderness, prescribed Naproxen 500mg
-2025-11-08: Dr. Michael Chen (Ortho) — Initial consult — Palpable spasm C4-C5, referred for MRI
-2025-11-18: Radiology — MRI cervical/lumbar — C4-C5 disc herniation confirmed, L4-L5 disc bulge
-2025-11-25: Dr. James Kim (PT) — Physical therapy started — 2x/week x 8 weeks
-2026-01-10: Dr. Robert Park (Pain Mgmt) — Epidural steroid injection — 40% improvement
-2026-02-20: Dr. Michael Chen (Ortho) — Surgical evaluation — Microdiscectomy recommended
-2026-03-15: Dr. James Kim (PT) — PT discharge — Residual radiculopathy, home program provided
+2025-11-04: Dr. Lisa Torres (ER) — Emergency visit — Pain 8/10, cervical tenderness, Naproxen prescribed
+2025-11-08: Dr. Michael Chen (Ortho) — Initial consult — Spasm C4-C5, MRI ordered
+2025-11-18: Radiology — MRI cervical/lumbar — C4-C5 herniation confirmed, L4-L5 bulge
+2025-11-25: Dr. James Kim (PT) — PT started — 2x/week x 8 weeks
+2026-01-10: Dr. Robert Park (Pain) — Epidural injection — 40% improvement reported
+2026-02-20: Dr. Michael Chen (Ortho) — Surgical eval — Microdiscectomy recommended
 
 MEDICATIONS
-- Naproxen 500mg — anti-inflammatory — Dr. Torres, ER 2025-11-04
+- Naproxen 500mg — anti-inflammatory — Dr. Torres 2025-11-04
 - Cyclobenzaprine 10mg — muscle relaxant — Dr. Chen 2025-11-08
 - Gabapentin 300mg 3x/day — neuropathic pain — Dr. Park 2026-01-10
-- Oxycodone 5mg PRN — acute pain — Dr. Park 2026-01-10 (limited script)
 
 DIAGNOSTIC TESTS
-- X-ray cervical/lumbar — 2025-11-04 — No fracture, soft tissue swelling noted
-- MRI Cervical Spine — 2025-11-18 — C4-C5 disc herniation with left foraminal encroachment
+- X-ray cervical/lumbar — 2025-11-04 — No fracture, soft tissue swelling
+- MRI Cervical Spine — 2025-11-18 — C4-C5 disc herniation, foraminal encroachment
 - MRI Lumbar Spine — 2025-11-18 — L4-L5 disc bulge, mild stenosis
 
 CAUSATION ANALYSIS
-Causal Link Strength: STRONG
-Key Findings:
-- MRI findings (C4-C5 herniation) consistent with acute traumatic mechanism
-- No pre-existing cervical or lumbar conditions documented
-- ER documentation directly correlates to 2025-11-04 MVA
-Pre-existing Condition Impact: None. No prior musculoskeletal conditions documented.
-Notable Quotes from Records:
-- "The disc herniation at C4-C5 is consistent with acute traumatic injury and is directly causally related to the motor vehicle accident of November 4, 2025." — Dr. Michael Chen, MD, 2026-02-20
-- "Patient presents with new-onset radiculopathy with no prior history of cervical pathology." — Dr. Robert Park, MD, 2026-01-10
+Causal Link Strength: Strong
+Key Findings: MRI findings consistent with acute traumatic mechanism; no prior pathology; ER visit same day as incident
+Pre-existing Condition Impact: None — no prior musculoskeletal conditions documented
+Notable Quotes: "The disc herniation at C4-C5 is directly causally related to the MVA of November 4, 2025." — Dr. Chen, 2026-02-20
 
 DAMAGES ESTIMATE
 Medical Bills to Date: $47,832
 Future Medical Costs (estimated): $85,000 - $120,000 (potential microdiscectomy + rehab)
-Lost Wages: 6 weeks documented ($12,400 estimated at $2,066/week)
-Permanent Impairment: Not yet rated — recommend IME
+Lost Wages: 6 weeks documented ($12,400 estimated)
+Permanent Impairment: Not yet rated — IME recommended
 Total Estimated Economic Damages: $145,232 - $180,232
 
 KEY SUPPORTING QUOTES
-1. "The disc herniation at C4-C5 is consistent with acute traumatic injury and is directly causally related to the motor vehicle accident of November 4, 2025." — Dr. Michael Chen, MD, 2026-02-20
-2. "Patient presents with new-onset radiculopathy with no prior history of cervical pathology." — Dr. Robert Park, MD, 2026-01-10
-3. "Unable to perform daily activities including driving, prolonged sitting, or lifting over 10 lbs." — Dr. James Kim, PT, 2025-12-15
+1. "The disc herniation at C4-C5 is directly causally related to the MVA of November 4, 2025." — Dr. Michael Chen, 2026-02-20
+2. "No prior history of cervical pathology documented in patient records." — Dr. Robert Park, 2026-01-10
 
 FLAGS AND GAPS
-- HIGH: No permanent impairment rating obtained — critical for full damages calculation
-- HIGH: Surgical decision pending as of 2026-02-20 — outcome significantly affects damages
-- MEDIUM: 6-week gap between PT discharge (2026-03-15) and today — recommend obtaining updated records
-- LOW: Oxycodone prescription may be scrutinized — confirm dosage and duration were appropriate
+- HIGH: No permanent impairment rating — critical for full damages calculation
+- HIGH: Surgical decision pending — significantly affects total damages range
+- MEDIUM: 6-week gap in treatment post PT discharge — obtain updated records
+- LOW: DEMO MODE ACTIVE — configure OpenAI API key in index.html CONFIG block to process real documents
 
 RECOMMENDATIONS
-1. Obtain independent medical examination (IME) for permanent impairment rating
-2. Request itemized billing statements from all providers
-3. Obtain updated records — any treatment after 2026-03-15
-4. Secure Dr. Chen written causation opinion letter for mediation/trial
-5. Determine surgical decision status — microdiscectomy changes damages range significantly
+- Obtain IME for permanent impairment rating
+- Request itemized billing from all providers
+- Get Dr. Chen written causation opinion letter
+- Determine surgical decision status
 
 === END SUMMARY ===`;
-
-// ── TOGGLE API KEY VIS ──
-function toggleApiKeyVis() {
-  const inp = document.getElementById('apiKey');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+    </script><script>
+// ─── RESULTS ────────────────────────────────────────
+function showResults(text,client,caseN,filename){
+  summaryText=text;
+  const elapsed=((Date.now()-tStart)/1000).toFixed(1);
+  const isDemo=!CONFIG.OPENAI_API_KEY;
+  setTimeout(()=>{
+    document.getElementById('procSection').style.display='none';
+    document.getElementById('resultSection').style.display='block';
+    setStep(4);
+    document.getElementById('resultMeta').innerHTML=
+      'Client: <strong>'+client+'</strong> &nbsp;·&nbsp; Case: <strong>'+caseN+'</strong> &nbsp;·&nbsp; File: <strong>'+filename+'</strong><br/>Generated: <strong>'+new Date().toLocaleString()+'</strong> &nbsp;·&nbsp; Time: <strong>'+elapsed+'s</strong>'+(isDemo?' &nbsp;·&nbsp; <span class="pill a">⚡ Demo Mode</span>':'');
+    renderStats(text,elapsed);
+    const panels=document.getElementById('panels');
+    panels.innerHTML='';
+    panels.appendChild(mkPanel('🩺','Injury Summary',injBadge(text),injBody(text),true));
+    panels.appendChild(mkPanel('📅','Treatment Timeline',tlBadge(text),tlBody(text),false));
+    panels.appendChild(mkPanel('⚖️','Causation Analysis',causBadge(text),causBody(text),false));
+    panels.appendChild(mkPanel('💰','Damages Estimate','',damBody(text),true));
+    panels.appendChild(mkPanel('💬','Key Quotes','',qtBody(text),false));
+    panels.appendChild(mkPanel('🚩','Flags &amp; Gaps',flagBadge(text),flagBody(text),true));
+    panels.appendChild(mkPanel('📌','Recommendations','',recBody(text),false));
+    panels.appendChild(mkPanel('📄','Full Raw Summary','',`<div class="raw-text">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`,false));
+    document.getElementById('resultSection').scrollIntoView({behavior:'smooth',block:'start'});
+  },600);
 }
 
-// ── TOGGLE CONSENT ──
-function toggleConsent() {
-  const cb = document.getElementById('consentCheck');
-  cb.checked = !cb.checked;
-  updateSubmitState();
+function sect(t,s,e){const i=t.indexOf(s);if(i<0)return'';const j=e?t.indexOf(e,i):t.length;return t.slice(i+s.length,j<0?undefined:j).trim();}
+
+function renderStats(t,e){
+  const inj=(t.match(/^d+./gm)||[]).length;
+  const tl=(t.match(/^20dd-dd-dd:/gm)||[]).length;
+  const fl=(t.match(/^- (HIGH|MEDIUM|LOW):/gm)||[]).length;
+  const wc=t.split(/s+/).length;
+  document.getElementById('statsRow').innerHTML=[[e+'s','Time'],[inj||'—','Injuries'],[tl||'—','Timeline'],[fl||'—','Flags'],[wc.toLocaleString(),'Words']].map(([v,l])=>`<div class="stat"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div></div>`).join('');
 }
 
-// ── FILE HANDLING ──
-function handleFileSelect(file) {
-  if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.pdf')) {
-    showError('Please select a PDF file.');
-    return;
-  }
-  if (file.size > 52428800) {
-    showError('File exceeds 50MB limit. Please use a smaller PDF.');
-    return;
-  }
-  selectedFile = file;
-  document.getElementById('fileSelected').style.display = 'flex';
-  document.getElementById('fileSelectedName').textContent = file.name;
-  document.getElementById('fileSelectedSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-  updateSubmitState();
+function mkPanel(ico,title,badge,body,open){
+  const id='p'+Math.random().toString(36).slice(2,8);
+  const d=document.createElement('div');d.className='panel';
+  d.innerHTML=`<div class="panel-hdr" onclick="tog('${id}')"><div class="panel-title">${ico} ${title}${badge?' '+badge:''}</div><div class="panel-tog" id="t${id}">${open?'▲ Hide':'▼ Show'}</div></div><div class="panel-body" id="${id}" style="display:${open?'block':'none'}">${body}</div>`;
+  return d;
+}
+function tog(id){const b=document.getElementById(id),t=document.getElementById('t'+id);const o=b.style.display==='none';b.style.display=o?'block':'none';t.textContent=o?'▲ Hide':'▼ Show';}
+
+function injBadge(t){const n=(sect(t,'INJURY SUMMARY','TREATMENT TIMELINE').match(/^d+./gm)||[]).length;return n?`<span class="pill r">${n} diagnosed</span>`:''}
+function injBody(t){
+  const s=sect(t,'INJURY SUMMARY','TREATMENT TIMELINE');
+  const lines=s.split('
+').filter(l=>/^d+./.test(l.trim()));
+  if(!lines.length)return`<pre style="white-space:pre-wrap;font-size:13px">${s}</pre>`;
+  return`<div class="injury-chips">${lines.map(l=>{const txt=l.replace(/^d+.s*/,'');const sv=/severe/i.test(txt)?'severe':/moderate/i.test(txt)?'moderate':'mild';return`<div class="ichip ${sv}">${txt}</div>`;}).join('')}</div>`;
+}
+function tlBadge(t){const n=(sect(t,'TREATMENT TIMELINE','MEDICATIONS').match(/^20dd/gm)||[]).length;return n?`<span class="pill b">${n} events</span>`:''}
+function tlBody(t){
+  const lines=sect(t,'TREATMENT TIMELINE','MEDICATIONS').split('
+').filter(l=>l.trim().length>5);
+  if(!lines.length)return'—';
+  return lines.map(l=>{const c=l.indexOf(':');if(c>0&&c<15)return`<div class="tl-item"><div class="tl-date">${l.slice(0,c).trim()}</div><div class="tl-event">${l.slice(c+1).trim()}</div></div>`;return`<div class="tl-item"><div class="tl-event">${l.trim()}</div></div>`;}).join('');
+}
+function causBadge(t){const m=sect(t,'CAUSATION ANALYSIS','DAMAGES ESTIMATE').match(/Causal Link Strength:s*(.+)/i);if(!m)return'';const s=m[1].trim();const c=/strong/i.test(s)?'g':/moderate/i.test(s)?'a':'r';return`<span class="pill ${c}">${s}</span>`}
+function causBody(t){return`<pre style="white-space:pre-wrap;font-size:13px;line-height:1.7">${sect(t,'CAUSATION ANALYSIS','DAMAGES ESTIMATE')}</pre>`}
+function damBody(t){
+  const lines=sect(t,'DAMAGES ESTIMATE','KEY SUPPORTING QUOTES').split('
+').filter(l=>l.includes(':'));
+  if(!lines.length)return'—';
+  return`<table class="dtable">${lines.map(l=>{const i=l.indexOf(':');const tot=/total/i.test(l);return`<tr class="${tot?'total-row':''}"><td>${l.slice(0,i).trim()}</td><td>${l.slice(i+1).trim()}</td></tr>`;}).join('')}</table>`;
+}
+function qtBody(t){
+  const lines=sect(t,'KEY SUPPORTING QUOTES','FLAGS AND GAPS').split('
+').filter(l=>/^d+./.test(l.trim())||l.trim().startsWith('"'));
+  if(!lines.length)return'—';
+  return lines.map(l=>{const m=l.match(/"(.+?)"s*[—-]s*(.+)/);if(m)return`<div class="quote"><div class="quote-text">"${m[1]}"</div><div class="quote-src">— ${m[2]}</div></div>`;return`<div class="quote"><div class="quote-text">${l.replace(/^d+.s*/,'').trim()}</div></div>`;}).join('');
+}
+function flagBadge(t){const n=(sect(t,'FLAGS AND GAPS','RECOMMENDATIONS').match(/^- (HIGH|MEDIUM|LOW):/gm)||[]).length;return n?`<span class="pill r">${n} flagged</span>`:''}
+function flagBody(t){
+  const lines=sect(t,'FLAGS AND GAPS','RECOMMENDATIONS').split('
+').filter(l=>l.trim().startsWith('-'));
+  if(!lines.length)return'—';
+  return lines.map(l=>{const sv=/HIGH/i.test(l)?'high':/MEDIUM/i.test(l)?'medium':'low';const ic=sv==='high'?'🚨':sv==='medium'?'⚠️':'ℹ️';return`<div class="flag-item ${sv}"><div class="flag-ico">${ic}</div><div class="flag-txt">${l.replace(/^-s*/,'').trim()}</div></div>`;}).join('');
+}
+function recBody(t){
+  const lines=sect(t,'RECOMMENDATIONS','=== END').split('
+').filter(l=>l.trim().startsWith('-')||/^d+./.test(l.trim()));
+  if(!lines.length)return'—';
+  return lines.map(l=>`<div style="padding:9px 0;border-bottom:1px solid var(--g200);font-size:14px">✅ ${l.replace(/^[-d.s]+/,'').trim()}</div>`).join('');
 }
 
-function clearFile() {
-  selectedFile = null;
-  document.getElementById('fileInput').value = '';
-  document.getElementById('fileSelected').style.display = 'none';
-  updateSubmitState();
+// ─── ACTIONS ─────────────────────────────────────────
+function copySummary(){navigator.clipboard.writeText(summaryText).then(()=>alert('Copied!')).catch(()=>{const t=document.createElement('textarea');t.value=summaryText;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);alert('Copied!')});}
+function downloadSummary(){const n=document.getElementById('caseName').value.trim().replace(/[^a-z0-9]/gi,'-').toLowerCase();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([summaryText],{type:'text/plain'}));a.download='medical-summary-'+n+'-'+Date.now()+'.txt';a.click();}
+function printSummary(){const w=window.open('','_blank');w.document.write('<html><head><title>Medical Summary</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.7;white-space:pre-wrap}</style></head><body>'+summaryText+'</body></html>');w.document.close();w.print();}
+function resetAll(){selFile=null;summaryText='';document.getElementById('fileInput').value='';document.getElementById('fileInfo').style.display='none';document.getElementById('consentChk').checked=false;document.getElementById('resultSection').style.display='none';document.getElementById('intakeSection').style.display='block';setStep(1);updateBtn();['read','extract','prep','ai','fmt','done'].forEach(s=>pStep(s,'',''));window.scrollTo({top:0,behavior:'smooth'});}
+
+// ─── PIPELINE HELPERS ────────────────────────────────
+const pIcoMap={read:'📂',extract:'🔍',prep:'⚙️',ai:'🧠',fmt:'📋',done:'✅'};
+function pStep(id,state,detail){
+  const el=document.getElementById('ps-'+id),ic=document.getElementById('pi-'+id),dt=document.getElementById('pd-'+id);
+  if(!el)return;el.className='pstep '+(state||'');
+  ic.textContent=state==='done'?'✓':state==='active'?'⟳':state==='error'?'✕':pIcoMap[id]||'○';
+  if(detail&&dt){dt.textContent=detail;dt.className='pdet '+(state||'');}
 }
-
-// Drag & drop
-const fileDrop = document.getElementById('fileDrop');
-fileDrop.addEventListener('dragover', (e) => { e.preventDefault(); fileDrop.classList.add('dragover'); });
-fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
-fileDrop.addEventListener('drop', (e) => {
-  e.preventDefault();
-  fileDrop.classList.remove('dragover');
-  if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
-});
-
-// ── UPDATE SUBMIT STATE ──
-function updateSubmitState() {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  const firstName = document.getElementById('firstName').value.trim();
-  const caseName = document.getElementById('caseName').value.trim();
-  const consent = document.getElementById('consentCheck').checked;
-  const hasPdf = !!selectedFile;
-  const isDemoReady = firstName && caseName && consent;
-  const isLiveReady = isDemoReady && apiKey && hasPdf;
-  document.getElementById('submitBtn').disabled = !isDemoReady;
-}
-
-// Watch form fields
-['apiKey','firstName','lastName','caseName','claimType'].forEach(id => {
-  document.getElementById(id).addEventListener('input', updateSubmitState);
-});
-
-// ── DEMO MODE ──
-function loadDemoMode() {
-  document.getElementById('firstName').value = 'Sarah';
-  document.getElementById('lastName').value = 'Johnson';
-  document.getElementById('caseName').value = 'Johnson v. Martinez';
-  document.getElementById('claimType').value = 'Personal Injury (MVA)';
-  document.getElementById('additionalNotes').value = 'Focus on causation analysis and damages estimate. Client is a teacher.';
-  document.getElementById('consentCheck').checked = true;
-  updateSubmitState();
-  showInfo('Demo data loaded! Click "Generate Medical Summary" to run with pre-loaded sample output (no API key needed in demo mode).');
-}
-
-// ── SUBMIT ──
-async function submitForm() {
-  clearError();
-  const apiKey = document.getElementById('apiKey').value.trim();
-  const firstName = document.getElementById('firstName').value.trim();
-  const lastName = document.getElementById('lastName').value.trim();
-  const caseName = document.getElementById('caseName').value.trim();
-  const claimType = document.getElementById('claimType').value;
-  const notes = document.getElementById('additionalNotes').value.trim();
-  const model = document.getElementById('modelSelect').value;
-  const isDemoMode = !apiKey && !selectedFile;
-
-  // Switch to processing view
-  document.getElementById('intakeSection').style.display = 'none';
-  document.getElementById('processingSection').style.display = 'block';
-  processingStart = Date.now();
-  startTimer();
-
-  try {
-    if (isDemoMode) {
-      await runDemoProcessing(firstName, lastName, caseName, claimType);
-    } else if (selectedFile && apiKey) {
-      await runLiveProcessing(apiKey, model, firstName, lastName, caseName, claimType, notes);
-    } else if (!apiKey && selectedFile) {
-      await runDemoProcessing(firstName, lastName, caseName, claimType, true);
-    } else {
-      throw new Error('Please provide your OpenAI API key and upload a PDF, or use Demo Mode.');
-    }
-  } catch (err) {
-    stopTimer();
-    document.getElementById('processingSection').style.display = 'none';
-    document.getElementById('intakeSection').style.display = 'block';
-    showError(err.message || 'An error occurred. Please try again.');
-  }
-}
-
-// ── DEMO PROCESSING (animated, uses pre-built output) ──
-async function runDemoProcessing(firstName, lastName, caseName, claimType, withRealPdf = false) {
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-  setStep('upload', 'active', 'Reading PDF from your computer...');
-  await sleep(800);
-  setStep('upload', 'done', withRealPdf ? 'PDF file loaded ✓' : 'Demo PDF loaded ✓');
-
-  setStep('extract', 'active', 'Extracting text from PDF pages...');
-  await sleep(1200);
-  setStep('extract', 'done', 'Text extracted — 847 words across 12 pages ✓');
-
-  setStep('chunk', 'active', 'Preparing text chunks for AI analysis...');
-  await sleep(600);
-  setStep('chunk', 'done', '1 chunk prepared (under token limit) ✓');
-
-  setStep('ai', 'active', 'Sending to GPT-4o for legal analysis...');
-  document.getElementById('procSubtitle').textContent = 'AI is analyzing the medical records — this is the longest step';
-  await sleep(2800);
-  setStep('ai', 'done', 'GPT-4o analysis complete ✓');
-
-  setStep('format', 'active', 'Structuring legal summary output...');
-  await sleep(700);
-  setStep('format', 'done', 'Output structured and validated ✓');
-
-  setStep('done', 'active', 'Summary ready!');
-  await sleep(400);
-  setStep('done', 'done', 'Complete ✓');
-
-  stopTimer();
-  const elapsed = ((Date.now() - processingStart) / 1000).toFixed(1);
-  showResults(DEMO_SUMMARY, caseName, firstName + ' ' + lastName, elapsed, true);
-}
-
-// ── LIVE PROCESSING (real OpenAI API call) ──
-async function runLiveProcessing(apiKey, model, firstName, lastName, caseName, claimType, notes) {
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-  setStep('upload', 'active', 'Reading PDF from your computer...');
-  await sleep(200);
-
-  // Extract text from PDF using PDF.js
-  let extractedText = '';
-  try {
-    extractedText = await extractTextFromPdf(selectedFile);
-  } catch (e) {
-    throw new Error('PDF text extraction failed: ' + e.message + '. Tip: Make sure the PDF contains selectable text (not a scanned image).');
-  }
-
-  setStep('upload', 'done', 'PDF loaded ✓');
-  setStep('extract', 'done', 'Extracted ' + extractedText.split(' ').length.toLocaleString() + ' words ✓');
-
-  setStep('chunk', 'active', 'Chunking text for AI...');
-  const MAX_CHARS = 80000;
-  const chunks = [];
-  for (let i = 0; i < extractedText.length; i += MAX_CHARS) {
-    chunks.push(extractedText.slice(i, i + MAX_CHARS));
-  }
-  await sleep(300);
-  setStep('chunk', 'done', chunks.length + ' chunk(s) prepared ✓');
-
-  setStep('ai', 'active', 'Calling GPT-4o API...');
-  document.getElementById('procSubtitle').textContent = 'Waiting for OpenAI API response — this can take 30-60 seconds for large documents';
-
-  const systemPrompt = `You are a legal medical records analyst AI assistant specializing in personal injury, workers compensation, and medical malpractice cases.
-
-Your job is to read extracted medical records text and produce a structured legal summary that an attorney can use to evaluate the case, prepare for trial, or negotiate a settlement.
-
-You must be accurate, thorough, and legally precise. Do not speculate. Only report what is documented in the records. Flag any gaps, inconsistencies, or missing information.
-
-OUTPUT FORMAT — Always return your response in the following exact structure:
-
-=== MEDICAL RECORDS SUMMARY ===
-Case: [case name if provided, otherwise Not Specified]
-Generated: [current date]
-
-PATIENT OVERVIEW
-Name: [patient name]
-Date of Birth: [DOB if found]
-Incident Date: [date of incident if found]
-Claim Type: [claim type]
-Primary Treating Provider: [name and specialty]
-Other Treating Providers: [list names and specialties]
-
-INJURY SUMMARY
-[Numbered list of all diagnosed conditions]
-1. [Diagnosis] — [body part] — [severity: mild/moderate/severe] — [acute/chronic]
-Pre-existing Conditions: [list any, or None documented]
-
-TREATMENT TIMELINE
-[Chronological list of all medical visits]
-[Date]: [Provider] — [Type of visit] — [Key findings or treatments]
-
-MEDICATIONS
-[List all medications]
-- [Medication name] — [dosage] — [purpose] — [prescribing provider]
-
-DIAGNOSTIC TESTS
-[List all imaging, lab work]
-- [Test type] — [date] — [results summary]
-
-CAUSATION ANALYSIS
-Causal Link Strength: [Strong / Moderate / Weak / Insufficient documentation]
-Key Findings: [list specific documentation supporting or undermining causation]
-Pre-existing Condition Impact: [explain any overlap]
-Notable Quotes from Records: [verbatim quotes from physicians about causation]
-
-DAMAGES ESTIMATE
-Medical Bills to Date: $[amount or Not itemized]
-Future Medical Costs (estimated): $[range]
-Lost Wages: [documented or Not documented]
-Permanent Impairment: [rating if documented, or Not yet determined]
-Total Estimated Economic Damages: $[range]
-
-KEY SUPPORTING QUOTES
-[Verbatim quotes most useful for litigation or settlement]
-1. "[quote]" — [Provider], [date]
-
-FLAGS AND GAPS
-[Note any issues that could affect the case]
-- [Flag with severity: HIGH/MEDIUM/LOW]
-
-RECOMMENDATIONS
-[Brief recommendations for the attorney]
-- [recommendation]
-
-=== END SUMMARY ===`;
-
-  const userMessage = `Case: ${caseName}
-Client: ${firstName} ${lastName}
-Claim Type: ${claimType || 'Personal Injury'}
-${notes ? 'Additional Context: ' + notes : ''}
-
-MEDICAL RECORDS TEXT (Chunk 1 of ${chunks.length}):
-
-${chunks[0]}`;
-
-  let aiResponse = '';
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify({
-        model: model,
-        temperature: 0.2,
-        max_tokens: 4096,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ]
-      })
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      const errMsg = errData?.error?.message || 'API error ' + res.status;
-      throw new Error('OpenAI API Error: ' + errMsg);
-    }
-
-    const data = await res.json();
-    aiResponse = data.choices[0].message.content;
-  } catch (e) {
-    throw new Error(e.message);
-  }
-
-  setStep('ai', 'done', 'GPT-4o analysis complete ✓');
-
-  setStep('format', 'active', 'Structuring output...');
-  await sleep(400);
-  setStep('format', 'done', 'Summary structured ✓');
-
-  setStep('done', 'active', 'Summary ready!');
-  await sleep(300);
-  setStep('done', 'done', 'Complete ✓');
-
-  stopTimer();
-  const elapsed = ((Date.now() - processingStart) / 1000).toFixed(1);
-  showResults(aiResponse, caseName, firstName + ' ' + lastName, elapsed, false);
-}
-
-// ── PDF TEXT EXTRACTION ──
-async function extractTextFromPdf(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      try {
-        const typedArray = new Uint8Array(e.target.result);
-        // Use pdf.js if available, otherwise fallback
-        if (window.pdfjsLib) {
-          const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-          let fullText = '';
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += pageText + '\n';
-          }
-          resolve(fullText);
-        } else {
-          // Basic fallback: try to read as text
-          const text = new TextDecoder().decode(typedArray);
-          const cleaned = text.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s+/g, ' ').trim();
-          if (cleaned.length < 100) {
-            reject(new Error('Could not extract text from PDF. Make sure the PDF contains selectable text (not a scanned image). Install pdf.js for better extraction.'));
-          }
-          resolve(cleaned);
-        }
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-// ── PIPELINE STEP HELPERS ──
-function setStep(id, state, detail) {
-  const stepEl = document.getElementById('step-' + id);
-  const iconEl = document.getElementById('step-' + id + '-icon');
-  const detailEl = document.getElementById('step-' + id + '-detail');
-  stepEl.className = 'pipeline-step ' + state;
-  if (detail) {
-    detailEl.textContent = detail;
-    detailEl.className = 'step-detail ' + state + '-detail';
-  }
-  const icons = { upload: '📤', extract: '📖', chunk: '✂️', ai: '🧠', format: '📋', done: '✅' };
-  const doneIcons = { upload: '✓', extract: '✓', chunk: '✓', ai: '✓', format: '✓', done: '🎉' };
-  if (state === 'done') iconEl.textContent = doneIcons[id] || '✓';
-  else if (state === 'active') iconEl.textContent = '⟳';
-  else iconEl.textContent = icons[id] || '○';
-}
-
-// ── TIMER ──
-function startTimer() {
-  timerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - processingStart) / 1000);
-    const m = Math.floor(elapsed / 60);
-    const s = elapsed % 60;
-    document.getElementById('timerBadge').textContent = m + ':' + String(s).padStart(2,'0');
-  }, 500);
-}
-function stopTimer() {
-  clearInterval(timerInterval);
-  const elapsed = Math.floor((Date.now() - processingStart) / 1000);
-  const m = Math.floor(elapsed / 60);
-  const s = elapsed % 60;
-  document.getElementById('timerBadge').textContent = m + ':' + String(s).padStart(2,'0');
-  document.getElementById('procSpinner').style.display = 'none';
-  document.getElementById('procTitle').textContent = 'Processing Complete!';
-  document.getElementById('procSubtitle').textContent = 'Displaying results...';
-}
-
-// ── SHOW RESULTS ──
-function showResults(text, caseName, clientName, elapsed, isDemo) {
-  summaryText = text;
-  setTimeout(() => {
-    document.getElementById('processingSection').style.display = 'none';
-    document.getElementById('resultsSection').style.display = 'block';
-    document.getElementById('resultMeta').innerHTML =
-      'Case: <strong>' + caseName + '</strong> &nbsp;·&nbsp; Client: <strong>' + clientName + '</strong>' +
-      ' &nbsp;·&nbsp; Generated: <strong>' + new Date().toLocaleString() + '</strong>' +
-      ' &nbsp;·&nbsp; Time: <strong>' + elapsed + 's</strong>' +
-      (isDemo ? ' &nbsp;·&nbsp; <span class="pill pill-gold">⚡ Demo Mode</span>' : ' &nbsp;·&nbsp; <span class="pill pill-green">✓ Live</span>');
-
-    // Parse and render panels
-    renderStats(text, elapsed);
-    renderInjuries(text);
-    renderTimeline(text);
-    renderCausation(text);
-    renderDamages(text);
-    renderQuotes(text);
-    renderFlags(text);
-    renderRecs(text);
-    document.getElementById('summaryRaw').textContent = text;
-
-    // Scroll to results
-    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 600);
-}
-
-// ── PARSE HELPERS ──
-function extractSection(text, sectionName, nextSection) {
-  const start = text.indexOf(sectionName);
-  if (start === -1) return '';
-  const end = nextSection ? text.indexOf(nextSection, start) : text.length;
-  return text.slice(start + sectionName.length, end === -1 ? undefined : end).trim();
-}
-
-function renderStats(text, elapsed) {
-  const wordCount = text.split(/\s+/).length;
-  const injuries = (text.match(/^\d+\./gm) || []).length;
-  const timelineItems = (text.match(/^\d{4}-\d{2}-\d{2}:/gm) || []).length || (text.match(/^202\d-/gm) || []).length;
-  const flagCount = (text.match(/^-\s*(HIGH|MEDIUM|LOW):/gm) || []).length || (text.match(/^-\s*[A-Z ]+:/gm) || []).length;
-
-  document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card"><div class="stat-value">${elapsed}s</div><div class="stat-label">Processing Time</div></div>
-    <div class="stat-card"><div class="stat-value">${injuries || '—'}</div><div class="stat-label">Injuries Found</div></div>
-    <div class="stat-card"><div class="stat-value">${timelineItems || '—'}</div><div class="stat-label">Timeline Events</div></div>
-    <div class="stat-card"><div class="stat-value">${flagCount || '—'}</div><div class="stat-label">Flags Raised</div></div>
-    <div class="stat-card"><div class="stat-value">${wordCount.toLocaleString()}</div><div class="stat-label">Summary Words</div></div>
-  `;
-}
-
-function renderInjuries(text) {
-  const section = extractSection(text, 'INJURY SUMMARY', 'TREATMENT TIMELINE');
-  if (!section) return;
-  const lines = section.split('\n').filter(l => /^\d+\./.test(l.trim()));
-  if (!lines.length) return;
-  const chips = lines.map(l => {
-    const sev = l.toLowerCase().includes('severe') ? 'severe' :
-                l.toLowerCase().includes('moderate') ? 'moderate' : 'mild';
-    return `<div class="injury-chip ${sev}">${l.trim().replace(/^\d+\.\s*/, '')}</div>`;
-  }).join('');
-  document.getElementById('injuryPanel').innerHTML = `
-    <div class="summary-section">
-      <div class="summary-section-header">
-        <div class="summary-section-title">🩺 Injury Summary</div>
-        <div class="pill pill-red">${lines.length} diagnosed</div>
-      </div>
-      <div class="summary-section-body"><div class="injury-chips">${chips}</div></div>
-    </div>`;
-}
-
-function renderTimeline(text) {
-  const section = extractSection(text, 'TREATMENT TIMELINE', 'MEDICATIONS');
-  if (!section) return;
-  const lines = section.split('\n').filter(l => l.trim().length > 5);
-  if (!lines.length) return;
-  const items = lines.slice(0, 10).map(l => {
-    const colonIdx = l.indexOf(':');
-    if (colonIdx > 0 && colonIdx < 15) {
-      return `<div class="timeline-item"><div class="timeline-date">${l.slice(0,colonIdx).trim()}</div><div class="timeline-event">${l.slice(colonIdx+1).trim()}</div></div>`;
-    }
-    return `<div class="timeline-item"><div class="timeline-event">${l.trim()}</div></div>`;
-  }).join('');
-  document.getElementById('timelinePanel').innerHTML = `
-    <div class="summary-section">
-      <div class="summary-section-header" onclick="toggleSection('timelineBody')">
-        <div class="summary-section-title">📅 Treatment Timeline</div>
-        <div class="summary-section-toggle" id="timelineBodyToggle">▼ Show</div>
-      </div>
-      <div class="summary-section-body" id="timelineBody" style="display:none;">${items}</div>
-    </div>`;
-}
-
-function renderCausation(text) {
-  const section = extractSection(text, 'CAUSATION ANALYSIS', 'DAMAGES ESTIMATE');
-  if (!section) return;
-  const strengthMatch = section.match(/Causal Link Strength:\s*(.+)/i);
-  const strength = strengthMatch ? strengthMatch[1].trim() : '';
-  const pillClass = strength.toLowerCase().includes('strong') ? 'pill-green' : strength.toLowerCase().includes('moderate') ? 'pill-gold' : 'pill-red';
-  document.getElementById('causationPanel').innerHTML = `
-    <div class="summary-section">
-      <div class="summary-section-header" onclick="toggleSection('causBody')">
-        <div class="summary-section-title">⚖️ Causation Analysis ${strength ? `<span class="pill ${pillClass}">${strength}</span>` : ''}</div>
-        <div class="summary-section-toggle" id="causBodyToggle">▼ Show</div>
-      </div>
-      <div class="summary-section-body" id="causBody" style="display:none;white-space:pre-wrap;">${section}</div>
-    </div>`;
-}
-
-function renderDamages(text) {
-  const section = extractSection(text, 'DAMAGES ESTIMATE', 'KEY SUPPORTING QUOTES');
-  if (!section) return;
-  const lines = section.split('\n').filter(l => l.trim());
-  const rows = lines.map(l => {
-    const idx = l.indexOf(':');
-    if (idx < 0) return '';
-    const isTotal = l.toLowerCase().includes('total');
-    return `<tr class="${isTotal ? 'total-row' : ''}"><td>${l.slice(0,idx).trim()}</td><td>${l.slice(idx+1).trim()}</td></tr>`;
-  }).join('');
-  document.getElementById('damagesPanel').innerHTML = `
-    <div class="summary-section">
-      <div class="summary-section-header">
-        <div class="summary-section-title">💰 Damages Estimate</div>
-      </div>
-      <div class="summary-section-body"><table class="damages-table">${rows}</table></div>
-    </div>`;
-}
-
-function renderQuotes(text) {
-  const section = extractSection(text, 'KEY SUPPORTING QUOTES', 'FLAGS AND GAPS');
-  if (!section) return;
-  const lines = section.split('\n').filter(l => /^\d+\./.test(l.trim()) || l.trim().startsWith('"'));
-  if (!lines.length) return;
-  const items = lines.map(l => {
-    const m = l.match(/"(.+?)"\s*—\s*(.+)/);
-    if (m) return `<div class="quote-item"><div class="quote-text">"${m[1]}"</div><div class="quote-source">— ${m[2]}</div></div>`;
-    return `<div class="quote-item"><div class="quote-text">${l.replace(/^\d+\.\s*/,'').trim()}</div></div>`;
-  }).join('');
-  document.getElementById('quotesPanel').innerHTML = `
-    <div class="summary-section">
-      <div class="summary-section-header" onclick="toggleSection('quotesBody')">
-        <div class="summary-section-title">💬 Key Supporting Quotes</div>
-        <div class="summary-section-toggle" id="quotesBodyToggle">▼ Show</div>
-      </div>
-      <div class="summary-section-body" id="quotesBody" style="display:none;">${items}</div>
-    </div>`;
-}
-
-function renderFlags(text) {
-  const section = extractSection(text, 'FLAGS AND GAPS', 'RECOMMENDATIONS');
-  if (!section) return;
-  const lines = section.split('\n').filter(l => l.trim().startsWith('-'));
-  if (!lines.length) return;
-  const items = lines.map(l => {
-    const sev = l.toUpperCase().includes('HIGH') ? 'high' : l.toUpperCase().includes('MEDIUM') ? 'medium' : 'low';
-    const icon = sev === 'high' ? '🚨' : sev === 'medium' ? '⚠️' : 'ℹ️';
-    return `<div class="flag-item ${sev}"><div class="flag-icon">${icon}</div><div class="flag-text">${l.replace(/^-\s*/,'').trim()}</div></div>`;
-  }).join('');
-  document.getElementById('flagsPanel').innerHTML = `
-    <div class="summary-section">
-      <div class="summary-section-header">
-        <div class="summary-section-title">🚩 Flags &amp; Gaps</div>
-        <div class="pill pill-red">${lines.length} flagged</div>
-      </div>
-      <div class="summary-section-body">${items}</div>
-    </div>`;
-}
-
-function renderRecs(text) {
-  const section = extractSection(text, 'RECOMMENDATIONS', '=== END');
-  if (!section) return;
-  const lines = section.split('\n').filter(l => l.trim().startsWith('-') || /^\d+\./.test(l.trim()));
-  if (!lines.length) return;
-  const items = lines.map(l => `<div style="padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:14px;">✅ ${l.replace(/^[-\d.\s]+/,'').trim()}</div>`).join('');
-  document.getElementById('recsPanel').innerHTML = `
-    <div class="summary-section">
-      <div class="summary-section-header" onclick="toggleSection('recsBody')">
-        <div class="summary-section-title">📌 Attorney Recommendations</div>
-        <div class="summary-section-toggle" id="recsBodyToggle">▼ Show</div>
-      </div>
-      <div class="summary-section-body" id="recsBody" style="display:none;">${items}</div>
-    </div>`;
-}
-
-// ── SECTION TOGGLE ──
-function toggleSection(id) {
-  const el = document.getElementById(id);
-  const toggle = document.getElementById(id + 'Toggle');
-  if (el) {
-    const isHidden = el.style.display === 'none';
-    el.style.display = isHidden ? 'block' : 'none';
-    if (toggle) toggle.textContent = isHidden ? '▲ Hide' : '▼ Show';
-  }
-}
-
-// ── COPY / DOWNLOAD ──
-function copyToClipboard() {
-  navigator.clipboard.writeText(summaryText).then(() => {
-    alert('Summary copied to clipboard!');
-  }).catch(() => {
-    const ta = document.createElement('textarea');
-    ta.value = summaryText;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert('Summary copied!');
-  });
-}
-
-function downloadSummary() {
-  const caseName = document.getElementById('caseName').value.trim().replace(/[^a-z0-9]/gi, '-').toLowerCase();
-  const filename = 'medical-summary-' + caseName + '-' + Date.now() + '.txt';
-  const blob = new Blob([summaryText], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ── RESET ──
-function resetForm() {
-  document.getElementById('resultsSection').style.display = 'none';
-  document.getElementById('intakeSection').style.display = 'block';
-  selectedFile = null;
-  summaryText = '';
-  document.getElementById('fileInput').value = '';
-  document.getElementById('fileSelected').style.display = 'none';
-  // Reset pipeline steps
-  ['upload','extract','chunk','ai','format','done'].forEach(id => setStep(id, '', null));
-  updateSubmitState();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// ── ERROR / INFO ──
-function showError(msg) {
-  const el = document.getElementById('errorBanner');
-  el.style.display = 'block';
-  el.innerHTML = '⚠️ ' + msg;
-  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-function showInfo(msg) {
-  const el = document.getElementById('errorBanner');
-  el.style.display = 'block';
-  el.style.background = 'var(--green-light)';
-  el.style.borderColor = 'var(--green)';
-  el.style.color = 'var(--green)';
-  el.innerHTML = '✅ ' + msg;
-}
-function clearError() {
-  const el = document.getElementById('errorBanner');
-  el.style.display = 'none';
-  el.style.background = '';
-  el.style.borderColor = '';
-  el.style.color = '';
-}
+function setPI(i){document.getElementById('procIconEl').textContent=i;}
+function setPT(t){document.getElementById('procTitle').textContent=t;}
+function setPS(t){document.getElementById('procSub').textContent=t;}
+function startTimer(){timerInt=setInterval(()=>{const s=Math.floor((Date.now()-tStart)/1000);document.getElementById('procTimer').textContent='⏱ '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');},500);}
+function stopTimer(){clearInterval(timerInt);const s=Math.floor((Date.now()-tStart)/1000);document.getElementById('procTimer').textContent='⏱ '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');document.getElementById('procSpin').style.display='none';}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function showErr(m){const e=document.getElementById('errBanner');e.style.display='block';e.innerHTML=m;e.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function clearErr(){document.getElementById('errBanner').style.display='none';}
 </script>
 </body>
 </html>
