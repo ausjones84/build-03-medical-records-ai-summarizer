@@ -370,18 +370,22 @@ function buildRawPanel(t){return makePanel("&#128196;","Full Raw Summary","","<d
 
 function copySummary(){navigator.clipboard.writeText(summaryText).then(function(){alert("Copied!");}).catch(function(){var ta=document.createElement("textarea");ta.value=summaryText;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);alert("Copied!");});}
 function downloadSummary(){var n=document.getElementById("caseName").value.trim().replace(/[^a-z0-9]/gi,"-").toLowerCase();var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([summaryText],{type:"text/plain"}));a.download="medical-summary-"+n+"-"+Date.now()+".txt";a.click();}
-function printSummary(){var w=window.open("","_blank");w.document.write("<html><head><title>Medical Summary</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.7;white-space:pre-wrap}</style></head><body>"+summaryText+"
+function printSummary(){var w=window.open("","_blank");w.document.write("<html><head><title>Medical Summary</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.7;white-space:pre-wrap}</style></head><body>"+summaryText.replace(/</g,"&lt;")+"</body></html>");w.document.close();w.print();}
+function resetAll(){selFile=null;summaryText="";document.getElementById("fileInput").value="";document.getElementById("fileInfo").style.display="none";document.getElementById("consentChk").checked=false;document.getElementById("resultSection").style.display="none";document.getElementById("intakeSection").style.display="block";setStep(1);updateBtn();["read","extract","prep","ai","fmt","done"].forEach(function(s){pStep(s,"","");});window.scrollTo({top:0,behavior:"smooth"});}
+</script>
+
 <div class="email-modal-overlay" id="emailModalOverlay">
 <div class="email-modal">
 <h3>&#9993; Email Summary</h3>
-<p>Enter one or more email addresses to send the medical records summary to. Your email client will open ready to send.</p>
+<p>Enter one or more email addresses to send the summary to. Your email client will open ready to send.</p>
 <div class="email-row"><input type="email" id="emailInput" placeholder="Enter email address..." onkeydown="if(event.key==='Enter'){event.preventDefault();addEmailChip();}"/><button class="email-add-btn" onclick="addEmailChip()">+ Add</button></div>
 <div class="email-chips" id="emailChips"></div>
-<div style="font-size:12px;color:var(--g400);margin-bottom:16px;line-height:1.5">&#128274; Sent via your own email client (Gmail, Outlook etc.) No data passes through any third-party server.</div>
+<div style="font-size:12px;color:var(--g400);margin-bottom:16px;line-height:1.5">&#128274; Sent via your own email client. No data passes through any third-party server.</div>
 <div class="email-modal-actions"><button class="btn-cancel-email" onclick="hideEmailModal()">Cancel</button><button class="btn-send-email" id="btnSendEmail" onclick="sendEmailSummary()" disabled>&#9993; Open in Email Client</button></div>
 <div class="email-sent-note" id="emailSentNote">&#10003; Email client opened! Review and send from your email app.</div>
 </div>
 </div>
+<script>
 var emailList=[];
 function showEmailModal(){document.getElementById("emailModalOverlay").classList.add("open");document.getElementById("emailInput").focus();document.getElementById("emailSentNote").style.display="none";}
 function hideEmailModal(){document.getElementById("emailModalOverlay").classList.remove("open");emailList=[];renderChips();document.getElementById("emailInput").value="";}
@@ -389,8 +393,6 @@ function addEmailChip(){var inp=document.getElementById("emailInput");var val=in
 function removeChip(addr){emailList.splice(emailList.indexOf(addr),1);renderChips();}
 function renderChips(){var c=document.getElementById("emailChips");c.innerHTML="";emailList.forEach(function(e){var d=document.createElement("div");d.className="email-chip";d.textContent=e;var b=document.createElement("button");b.innerHTML="&#215;";b.title="Remove";b.onclick=function(){removeChip(e);};d.appendChild(b);c.appendChild(d);});document.getElementById("btnSendEmail").disabled=emailList.length===0;}
 function sendEmailSummary(){var cn=document.getElementById("caseName").value.trim();var maxLen=1800;var body=summaryText.length>maxLen?summaryText.substring(0,maxLen)+"\n\n[Summary truncated - download full version]":summaryText;var mailto="mailto:"+encodeURIComponent(emailList.join(","))+"?subject="+encodeURIComponent("Medical Records Summary - "+cn)+"&body="+encodeURIComponent(body);window.location.href=mailto;document.getElementById("emailSentNote").style.display="block";}
-</body></html>");w.document.close();w.print();}
-function resetAll(){selFile=null;summaryText="";document.getElementById("fileInput").value="";document.getElementById("fileInfo").style.display="none";document.getElementById("consentChk").checked=false;document.getElementById("resultSection").style.display="none";document.getElementById("intakeSection").style.display="block";setStep(1);updateBtn();["read","extract","prep","ai","fmt","done"].forEach(function(s){pStep(s,"","");});window.scrollTo({top:0,behavior:"smooth"});}
 </script>
 
 </body>
