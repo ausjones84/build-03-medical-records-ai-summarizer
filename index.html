@@ -45,7 +45,7 @@ footer{background:var(--navy);padding:20px 36px;text-align:center;color:rgba(255
 <body>
 
 <script>
-var CONFIG = {ANTHROPIC_API_KEY:"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",ANTHROPIC_MODEL:"claude-sonnet-4-5",FIRM_NAME:"Your Law Firm",MAX_FILE_MB:50};
+var CONFIG = {ANTHROPIC_API_KEY:"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",ANTHROPIC_MODEL:"claude-sonnet-4-5",FIRM_NAME:"Your Law Firm",MAX_FILE_MB:50,PROXY_URL:""};
 </script>
 
 <header>
@@ -269,7 +269,7 @@ var parts=["Case: "+cN,"Client: "+fn+" "+ln,"Claim Type: "+cT];
 if(nt)parts.push("Context: "+nt);
 parts.push(chunks.length>1?"DOCUMENT CHUNK "+(i+1)+" OF "+chunks.length+":":"MEDICAL RECORDS TEXT:");
 parts.push("");parts.push(chunks[i]);
-var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":CONFIG.ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-client-side-api-key-access":"true","anthropic-beta":"cors-1.0"},body:JSON.stringify({model:CONFIG.ANTHROPIC_MODEL,max_tokens:4096,system:SYS,messages:[{role:"user",content:parts.join("\n")}]})})
+var r=await fetch((CONFIG.PROXY_URL||"https://api.anthropic.com")+"/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":CONFIG.ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01",...(CONFIG.PROXY_URL?{}:{"anthropic-dangerous-client-side-api-key-access":"true","anthropic-beta":"cors-1.0"})},body:JSON.stringify({model:CONFIG.ANTHROPIC_MODEL,max_tokens:4096,system:SYS,messages:[{role:"user",content:parts.join("\n")}]})})
 ;if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error("Anthropic error: "+(e&&e.error?e.error.message:"HTTP "+r.status));}
 var d=await r.json();results.push(d.content[0].text);
 }
