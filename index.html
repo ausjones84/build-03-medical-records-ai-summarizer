@@ -230,7 +230,7 @@ async function startProcessing(){
     await sleep(700);showResults(summary,fn+" "+ln,cn,selFile.name);
   }catch(err){
     stopTimer();document.getElementById("procSection").style.display="none";document.getElementById("intakeSection").style.display="block";
-    setStep(1);showErr("Error: "+(err.message||"Something went wrong. Please try again."));
+    setStep(1);showErr("Error: "+(err.message==="Failed to fetch"?"API Error: Cannot connect. Check that your ANTHROPIC_API_KEY in CONFIG is valid (get one at console.anthropic.com).":(err.message||"Something went wrong. Please try again.")));
   }
 }
 
